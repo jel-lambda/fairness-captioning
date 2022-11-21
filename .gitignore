@@ -2,3 +2,22 @@ coco-data
 bbox.c
 *.so
 *.pyc
+
+# repo
+MODNet/
+GFM/
+
+# data
+Images/
+data/
+backgrounds/
+*.png
+*.pth
+
+# cache
+__pycache__/
+.vscode/
+.DS_Store
+*/.DS_Store
+*/**/.DS_Store
+
