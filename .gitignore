@@ -10,7 +10,6 @@ GFM/
 # data
 data/backgrounds/
 data/person_dataset/
-MODNet/demo/image_matting/colab/output
 *.png
 *.pth
 
