@@ -8,9 +8,9 @@ MODNet/
 GFM/
 
 # data
-Images/
-data/
-backgrounds/
+data/backgrounds/
+data/person_dataset/
+MODNet/demo/image_matting/colab/output
 *.png
 *.pth
 
