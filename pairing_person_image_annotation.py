@@ -1,5 +1,6 @@
 import json
 import string
+from collections import Counter, defaultdict
 
 import random
 random.seed(1029)
@@ -19,6 +20,9 @@ parser.add_argument('--target_word_gender_map_path', type=str, default='data/ann
                     help='Path to the mapping dictionary where keys are target words and values are gender tags.')
 parser.add_argument('--target_word_pairs_path', type=str, default='data/annotations/target_word_pairs.json',
                     help='Path to the paired target words such as ("man", "woman") and ("boy", "girl")')
+
+# parameter
+parser.add_argument('--n_samples_per_pair', type=int, default=100)
 
 # output file arguments
 parser.add_argument('--paired_annotations_path', type=str, default='data/annotations/paired_annotation.json',
@@ -59,11 +63,14 @@ def main():
 
     images = list(person_image_annotation.keys())
 
-    pair_info = []
+    pair_infos = defaultdict(list)
     '''
-    pair_info (list of dictionary)
-    dict: {'pair_id':(int),
-           'image1_filename':(str),
+    pair infos: {pair: pair_info}
+    :: pair (tuple):
+        a sorted pair of target words   
+    :: pair_info (list):
+        a list of pair information (dict)
+       (dict): {'image1_filename':(str),
            'image2_filename':(str),
            'caption1':(str),
            'caption2':(str),
@@ -73,20 +80,9 @@ def main():
            'cls_word_idx':(int)}
     '''
 
-    no_matched_pair_images = []
-
-    n_boy_girl = 0
-    n_man_woman = 0
-    n_man_nutural = 0
-    n_woman_nutural = 0
-
-    n_ignored_pairs = 0
-
     for i, anchor_image in enumerate(images):
         # Get the list of captions for the anchor image
         anchor_captions = person_image_annotation[anchor_image]
-
-        no_match = True
 
         for anchor_caption in anchor_captions:
             anchor_caption['caption'] = remove_punctuations(anchor_caption['caption'])
@@ -108,15 +104,9 @@ def main():
                         and (anchor_cls_idx == compare_cls_idx) \
                         and ({anchor_tgt_word, compare_tgt_word} in target_word_pairs):
 
-                        # ignore (man, woman) pairs with index 1 randomly
-                        if ({anchor_tgt_word, compare_tgt_word} == {'man', 'woman'}) \
-                            and (anchor_tgt_idx == 1) \
-                            and is_ignored(0.1):   
-                            n_ignored_pairs += 1
-                            continue
-
-                        pair_info.append({'pair_id': len(pair_info),
-                                        'image1_filename': anchor_image,
+                        pair = tuple(sorted([anchor_tgt_word, compare_tgt_word]))
+                        pair_infos[pair].append(
+                                        {'image1_filename': anchor_image,
                                         'image2_filename': compare_image,
                                         'caption1': anchor_caption['caption'],
                                         'caption2': compare_caption['caption'],
@@ -125,37 +115,43 @@ def main():
                                         'target_word_idx': anchor_tgt_idx,
                                         'cls_word_idx': anchor_cls_idx})
 
-                        no_match = False
+    # Sample n_samples_per_pair from each pair
+    sampled_pair_infos = defaultdict(list)
+    n_original_pairs = {}
+    for pair, pair_info in pair_infos.items():
+        n_original_pairs[pair] = len(pair_info)
+        n_exclude = len(pair_info) - args.n_samples_per_pair
+        # exclude the pair with the most frequent target word index
+        most_freq_tgt_word_idx, cnt = Counter([info['target_word_idx'] for info in pair_info]).most_common(1)[0]
+        sampled_pair_infos[pair] = [info for info in pair_info if info['target_word_idx'] != most_freq_tgt_word_idx] + \
+                                    random.sample([info for info in pair_info if info['target_word_idx'] == most_freq_tgt_word_idx],
+                                                    cnt - n_exclude)
 
-                        if {anchor_tgt_word, compare_tgt_word} == {'boy', 'girl'}:
-                            n_boy_girl += 1
-                        if {anchor_tgt_word, compare_tgt_word} == {'man', 'woman'}:
-                            n_man_woman += 1
-                        if {anchor_tgt_word, compare_tgt_word} == {'man', 'person'}:
-                            n_man_nutural += 1
-                        if {anchor_tgt_word, compare_tgt_word} == {'woman', 'person'}:
-                            n_woman_nutural += 1
+    # Concat the sampled pair infos
+    final_pair_infos = []
+    no_matched_pair_images = set(person_image_annotation.keys())
+    for pair, pair_info in sampled_pair_infos.items():        
+        for info in pair_info:
+            new_info = {'pair_id': len(final_pair_infos)}
+            new_info.update(info)
+            final_pair_infos.append(new_info)
+            no_matched_pair_images -= {info['image1_filename'], info['image2_filename']}
 
-        if no_match:
-            no_matched_pair_images.append(anchor_image)
-
-    print(f'Number of pairs: {len(pair_info)}')
+    print(f'Number of pairs: {len(final_pair_infos)}')
     print(f'Number of images without matched pair: {len(no_matched_pair_images)}')
-    print(f':: ("man", "woman") pairs = {n_man_woman}')
-    print(f':: ("boy", "girl") pairs = {n_boy_girl}')
-    print(f':: ("man", "person") pairs = {n_man_nutural}')
-    print(f':: ("woman", "person") pairs = {n_woman_nutural}')
-    print()
-    print(f':: Number of ignored ("man", "woman") pairs: {n_ignored_pairs}')
+    for pair in target_word_pairs:
+        pair = tuple(sorted(pair))
+        print(f'selected {pair} pairs: {len(sampled_pair_infos[pair])} / {n_original_pairs[pair]}')
 
     # Save the paired annotations
     with open(args.paired_annotations_path, 'w') as f:
-        json.dump(pair_info, f, indent=4)
+        json.dump(final_pair_infos, f, indent=4)
 
     # Save the images without matched pair
-    with open(args.no_matched_pair_images_path, 'w') as f:
-        for image in no_matched_pair_images:
-            f.write(image + '\n')
+    if no_matched_pair_images:
+        with open(args.no_matched_pair_images_path, 'w') as f:
+            for image in no_matched_pair_images:
+                f.write(image + '\n')
 
 if __name__ == '__main__':
     main()
