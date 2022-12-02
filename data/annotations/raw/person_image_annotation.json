@@ -1832,31 +1832,31 @@
             "caption": "a man in green shirt with cellphone <cls>",
             "target_word_idx": 1,
             "target_word": "man",
-            "cropping_info": "none"
+            "cropping_info": "center"
         },
         {
             "caption": "a man sitting <cls>",
             "target_word_idx": 1,
             "target_word": "man",
-            "cropping_info": "none"
+            "cropping_info": "center"
         },
         {
             "caption": "a man sitting cross legged <cls>",
             "target_word_idx": 1,
             "target_word": "man",
-            "cropping_info": "none"
+            "cropping_info": "center"
         },
         {
             "caption": "the man is meditating <cls>",
             "target_word_idx": 1,
             "target_word": "man",
-            "cropping_info": "none"
+            "cropping_info": "center"
         },
         {
             "caption": "a man sitting on the floor <cls>",
             "target_word_idx": 1,
             "target_word": "man",
-            "cropping_info": "none"
+            "cropping_info": "center"
         }
     ],
     "COCO_val2014_000000019716.png": [
