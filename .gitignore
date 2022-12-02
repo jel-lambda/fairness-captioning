@@ -4,12 +4,19 @@ bbox.c
 *.pyc
 
 # repo
-MODNet/
-GFM/
+data_gen/MODNet/
+data_gen/GFM/
+RainNet/
 
 # data
 data/backgrounds/
 data/person_dataset/
+data/masks/
+data/combined/
+data/cropped_masks/
+data/cropped_images/
+data/padded_masks/
+data/final/
 *.png
 *.pth
 
