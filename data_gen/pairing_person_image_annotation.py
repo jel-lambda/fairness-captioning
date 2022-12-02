@@ -14,7 +14,7 @@ import argparse
 parser = argparse.ArgumentParser()
 
 # input file arguments
-parser.add_argument('--person_image_annotations_path', type=str, default='data/annotations/person_image_annotation.json',
+parser.add_argument('--person_image_annotations_path', type=str, default='data/annotations/raw/person_image_annotation.json',
                     help='Path to the person image annotations json file as an input.')
 parser.add_argument('--target_word_gender_map_path', type=str, default='data/annotations/target_word_gender_map.json',
                     help='Path to the mapping dictionary where keys are target words and values are gender tags.')
