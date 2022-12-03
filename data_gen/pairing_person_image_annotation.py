@@ -92,6 +92,8 @@ def pair_person_image_annotations(image_list, person_image_annotations, target_w
                                     'caption2': compare_caption['caption'],
                                     'gender1': tgt2gender[anchor_tgt_word],
                                     'gender2': tgt2gender[compare_tgt_word],
+                                    'target_word1': anchor_tgt_word,
+                                    'target_word2': compare_tgt_word,
                                     'target_word_idx': anchor_tgt_idx,
                                     'cls_word_idx': anchor_cls_idx})
 
