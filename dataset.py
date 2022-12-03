@@ -43,34 +43,37 @@ class ImagePairedCaptionDataset(Dataset):
 
             for background_label, cls_template in self.backgroud_label2template.items():
                 
-                image_path_pair = (os.path.join(images_dir, f'{background_label}/{paired_annot["image1_filename"]}'),
-                                   os.path.join(images_dir, f'{background_label}/{paired_annot["image2_filename"]}'))    
-                
-                target_word_idx, cls_idx = paired_annot['target_word_idx'], paired_annot['cls_word_idx']
-                cls_template = self.backgroud_label2template[background_label]
+                for i in range(5):
+                    # Iterate over 5 background images
 
-                caption1 = self.replace_cls_to_template(paired_annot['caption1'], cls_idx, cls_template)
-                caption2 = self.replace_cls_to_template(paired_annot['caption2'], cls_idx, cls_template)
-                caption_pair = (caption1, caption2)
+                    image_path_pair = (os.path.join(images_dir, f'{background_label}_{i}/{paired_annot["image1_filename"]}'),
+                                    os.path.join(images_dir, f'{background_label}_{i}/{paired_annot["image2_filename"]}'))    
+                    
+                    target_word_idx, cls_idx = paired_annot['target_word_idx'], paired_annot['cls_word_idx']
+                    cls_template = self.backgroud_label2template[background_label]
 
-                if cls_idx < target_word_idx:
-                    # when target word is appeared after background_cls word
-                    target_word_idx = target_word_idx + len(cls_template.split()) - 1
-                cls_templete_idx = list( range( paired_annot['cls_word_idx'], paired_annot['cls_word_idx']+len(cls_template.split()) ) )
+                    caption1 = self.replace_cls_to_template(paired_annot['caption1'], cls_idx, cls_template)
+                    caption2 = self.replace_cls_to_template(paired_annot['caption2'], cls_idx, cls_template)
+                    caption_pair = (caption1, caption2)
 
-                self.img_path_pairs.append(image_path_pair)
-                self.caption_pairs.append(caption_pair)
-                self.target_word_pairs.append(target_word_pair)
-                self.target_word_idxs.append(target_word_idx)
-                self.cls_template_idxs.append(cls_templete_idx)
+                    if cls_idx < target_word_idx:
+                        # when target word is appeared after background_cls word
+                        target_word_idx = target_word_idx + len(cls_template.split()) - 1
+                    cls_templete_idx = list( range( paired_annot['cls_word_idx'], paired_annot['cls_word_idx']+len(cls_template.split()) ) )
 
-                # update word counter
-                self.word_Counter.update(caption1.split(' '))
-                self.word_Counter.update(caption2.split(' '))
+                    self.img_path_pairs.append(image_path_pair)
+                    self.caption_pairs.append(caption_pair)
+                    self.target_word_pairs.append(target_word_pair)
+                    self.target_word_idxs.append(target_word_idx)
+                    self.cls_template_idxs.append(cls_templete_idx)
 
-                # Add to image2captions
-                self.image2captions[image_path_pair[0]].add(caption1)
-                self.image2captions[image_path_pair[1]].add(caption2)
+                    # update word counter
+                    self.word_Counter.update(caption1.split(' '))
+                    self.word_Counter.update(caption2.split(' '))
+
+                    # Add to image2captions
+                    self.image2captions[image_path_pair[0]].add(caption1)
+                    self.image2captions[image_path_pair[1]].add(caption2)
 
         if vocab is None:
             self.vocab = ['<pad>', '<unk>', '<sos>', '<eos>'] + [word for word, count in self.word_Counter.items() if count >= vocab_min_count]
