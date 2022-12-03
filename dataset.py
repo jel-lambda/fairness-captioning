@@ -110,7 +110,6 @@ class ImagePairedCaptionDataset(Dataset):
                    torch.LongTensor(target_word_mask), torch.LongTensor(cls_template_mask)
 
         elif self.split_type == 'val':
-            # TODO: for validation, we need to return all captions in the image
             all_captions1 = [ [self.word2idx['<sos>']] + [self.word2idx[word] for word in caption.split(' ')] + [self.word2idx['<eos>']]
                             for caption in self.image2captions[img_path1]]
             all_captions2 = [ [self.word2idx['<sos>']] + [self.word2idx[word] for word in caption.split(' ')] + [self.word2idx['<eos>']]
