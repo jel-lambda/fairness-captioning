@@ -15,7 +15,7 @@ import argparse
 parser = argparse.ArgumentParser()
 
 # input file arguments
-parser.add_argument('--person_image_annotations_path', type=str, default='data/annotations/raw/person_image_annotation.json',
+parser.add_argument('--person_image_annotations_path', type=str, default='data/annotations/annotation_final.json',
                     help='Path to the person image annotations json file as an input.')
 parser.add_argument('--target_word_gender_map_path', type=str, default='data/annotations/target_word_gender_map.json',
                     help='Path to the mapping dictionary where keys are target words and values are gender tags.')
@@ -184,7 +184,7 @@ def main():
     test_person_images = []
     
     for person_info, images in person_info_splits.items():
-        random.shuffle(image)
+        random.shuffle(images)
         if person_info in ['man', 'woman']:
             train_person_images += images[:n_train_adult]
             val_person_images += images[n_train_adult:n_train_adult+n_val_adult]
@@ -193,8 +193,6 @@ def main():
             train_person_images += images[:n_train_kid]
             val_person_images += images[n_train_kid:n_train_kid+n_val_kid]
             test_person_images += images[n_train_kid+n_val_kid:]
-
-    breakpoint()
 
     '''
     ======================================
@@ -214,7 +212,7 @@ def main():
     print(f'Number of training images: {len(train_person_images)}')
     print(f'Number of training pairs: {len(train_paired_annotations)}')
     for pair in target_word_pairs:
-        print(f' ==> {pair}: {len(train_pair_infos[pair])}')
+        print(f' ==> {pair}: {len(train_pair_infos[tuple(sorted(pair))])}')
     print(f'Number of training images without matched pairs: {len(no_matched_train_images)}')
     print()
 
@@ -230,7 +228,7 @@ def main():
     print(f'Number of validation images: {len(val_person_images)}')
     print(f'Number of validation pairs: {len(val_paired_annotations)}')
     for pair in target_word_pairs:
-        print(f' ==> {pair}: {len(val_pair_infos[pair])}')
+        print(f' ==> {pair}: {len(val_pair_infos[tuple(sorted(pair))])}')
     print(f'Number of validation images without matched pairs: {len(no_matched_val_images)}')
     print()
 
@@ -246,7 +244,7 @@ def main():
     print(f'Number of test images: {len(test_person_images)}')
     print(f'Number of test pairs: {len(test_paired_annotations)}')
     for pair in target_word_pairs:
-        print(f' ==> {pair}: {len(test_pair_infos[pair])}')
+        print(f' ==> {pair}: {len(test_pair_infos[tuple(sorted(pair))])}')
     print(f'Number of test images without matched pairs: {len(no_matched_test_images)}')
     print()
 
@@ -257,23 +255,26 @@ def main():
     ======================================
     '''
     # Save the paired annotations
-    with open( os.path.join(args.paired_annotations_dir, 'train_paired_annotations.json'), 'w')  as f:
+    with open( os.path.join(args.annotations_dir, 'train_paired_annotations.json'), 'w')  as f:
         json.dump(train_paired_annotations, f, indent=4)
-    with open( os.path.join(args.paired_annotations_dir, 'val_paired_annotations.json'), 'w')  as f:
+    with open( os.path.join(args.annotations_dir, 'val_paired_annotations.json'), 'w')  as f:
         json.dump(val_paired_annotations, f, indent=4)
-    with open( os.path.join(args.paired_annotations_dir, 'test_paired_annotations.json'), 'w')  as f:
+    with open( os.path.join(args.annotations_dir, 'test_paired_annotations.json'), 'w')  as f:
         json.dump(test_paired_annotations, f, indent=4)
 
     # Save annotations
-    with open( os.path.join(args.paired_annotations_dir, 'train_annotations.json'), 'w')  as f:
+    with open( os.path.join(args.annotations_dir, 'train_annotations.json'), 'w')  as f:
         json.dump(train_annotations, f, indent=4)
-    with open( os.path.join(args.paired_annotations_dir, 'val_annotations.json'), 'w')  as f:
+    with open( os.path.join(args.annotations_dir, 'val_annotations.json'), 'w')  as f:
         json.dump(val_annotations, f, indent=4)
-    with open( os.path.join(args.paired_annotations_dir, 'test_annotations.json'), 'w')  as f:
+    with open( os.path.join(args.annotations_dir, 'test_annotations.json'), 'w')  as f:
         json.dump(test_annotations, f, indent=4)
 
     # Save the images without matched pair
-    no_matched_pair_images = no_matched_train_images + no_matched_val_images + no_matched_test_images
+    no_matched_pair_images = set()
+    no_matched_pair_images.update( no_matched_train_images )
+    no_matched_pair_images.update( no_matched_val_images )
+    no_matched_pair_images.update( no_matched_test_images )
     if no_matched_pair_images:
         with open(args.no_matched_pair_images_path, 'w') as f:
             for image in no_matched_pair_images:
