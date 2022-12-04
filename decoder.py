@@ -22,12 +22,27 @@ class Decoder(nn.Module):
         self.f_beta = nn.Linear(512, encoder_dim)
         self.sigmoid = nn.Sigmoid()
 
+        self.filter = nn.Sequential(
+            nn.Linear(encoder_dim, 512),
+            nn.ReLU(),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Linear(512, 512),
+            nn.ReLU()
+        )
+
         self.deep_output = nn.Linear(512, vocabulary_size)
         self.dropout = nn.Dropout()
 
         self.attention = Attention(encoder_dim)
         self.embedding = nn.Embedding(vocabulary_size, 512)
         self.lstm = nn.LSTMCell(512 + encoder_dim, 512)
+
+    def freeze_pretrained(self):
+        for param in self.parameters():
+            param.requires_grad = False
+        for param in self.filter.parameters():
+            param.requires_grad = True
 
     def forward(self, img_features, captions):
         """
@@ -48,6 +63,7 @@ class Decoder(nn.Module):
 
         preds = torch.zeros(batch_size, max_timespan, self.vocabulary_size).cuda()
         alphas = torch.zeros(batch_size, max_timespan, img_features.size(1)).cuda()
+        filtered_features = torch.zeros(batch_size, max_timespan, 512).cuda()
         for t in range(max_timespan):
             context, alpha = self.attention(img_features, h)
             gate = self.sigmoid(self.f_beta(h))
@@ -60,14 +76,16 @@ class Decoder(nn.Module):
                 lstm_input = torch.cat((embedding, gated_context), dim=1)
 
             h, c = self.lstm(lstm_input, (h, c))
-            output = self.deep_output(self.dropout(h))
+            feature = self.filter(h)
+            output = self.deep_output(self.dropout(feature))
 
             preds[:, t] = output
             alphas[:, t] = alpha
+            filtered_features[:, t] = feature
 
             if not self.training or not self.use_tf:
                 embedding = self.embedding(output.max(1)[1].reshape(batch_size, 1))
-        return preds, alphas
+        return preds, alphas, filtered_features
 
     def get_init_lstm_state(self, img_features):
         avg_features = img_features.mean(dim=1)
