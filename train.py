@@ -73,7 +73,7 @@ def train(epoch, encoder, decoder, optimizer, cross_entropy_loss, data_loader, w
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
-    for batch_idx, (imgs1, captions1), (imgs2, captions2), tgt_mask, cls_mask in enumerate(data_loader):
+    for batch_idx, (imgs1, captions1), (imgs2, captions2), tgt_masks, cls_masks in enumerate(data_loader):
         imgs1 = Variable(imgs1.cuda())
         captions1 = Variable(captions1.cuda())
         imgs2 = Variable(imgs2.cuda())
@@ -90,17 +90,10 @@ def train(epoch, encoder, decoder, optimizer, cross_entropy_loss, data_loader, w
         targets1 = captions1[:, 1:]
         targets2 = captions2[:, 1:]
 
-        targets1 = pack_padded_sequence(targets1, [len(tar) - 1 for tar in targets1], batch_first=True)[0]
-        preds1 = pack_padded_sequence(preds1, [len(pred) - 1 for pred in preds1], batch_first=True)[0]
-        targets2 = pack_padded_sequence(targets2, [len(tar) - 1 for tar in targets2], batch_first=True)[0]
-        preds2 = pack_padded_sequence(preds2, [len(pred) - 1 for pred in preds2], batch_first=True)[0]
-        features1 = pack_padded_sequence(features1, [len(pred) - 1 for pred in preds1], batch_first=True)[0]
-        features2 = pack_padded_sequence(features2, [len(pred) - 1 for pred in preds2], batch_first=True)[0]
-
-        tgt_feat1 = features1 * tgt_mask
-        tgt_feat2 = features2 * tgt_mask
-        cls_feat1 = features1 * cls_mask
-        cls_feat2 = features2 * cls_mask
+        tgt_feat1 = features1 * tgt_masks
+        tgt_feat2 = features2 * tgt_masks
+        cls_feat1 = features1 * cls_masks
+        cls_feat2 = features2 * cls_masks
 
         infonce_loss = nn.functional.cosine_similarity(tgt_feat1, tgt_feat2, dim=1).mean() - \
                           nn.functional.cosine_similarity(cls_feat1, cls_feat2, dim=1).mean()
