@@ -17,6 +17,9 @@ data/cropped_masks/
 data/cropped_images/
 data/padded_masks/
 data/final/
+data/original/
+*.zip
+
 *.png
 *.pth
 
