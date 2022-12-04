@@ -28,10 +28,10 @@ data_transforms = transforms.Compose([
 
 def main(args):
     writer = SummaryWriter()
-
+    
     word_dict = json.load(open(args.data + '/word_dict.json', 'r'))
     vocabulary_size = len(word_dict)
-
+    
     encoder = Encoder(args.network)
     decoder = Decoder(vocabulary_size, encoder.dim, args.tf)
 
@@ -57,8 +57,8 @@ def main(args):
     for epoch in range(1, args.epochs + 1):
         scheduler.step()
         train(epoch, encoder, decoder, optimizer, cross_entropy_loss,
-              train_loader, word_dict, args.alpha_c, args.log_interval, writer)
-        validate(epoch, encoder, decoder, cross_entropy_loss, val_loader,
+              train_loader, word_dict, args.log_interval, writer)
+        validate(epoch, encoder, decoder, filter, cross_entropy_loss, val_loader,
                  word_dict, args.alpha_c, args.log_interval, writer)
         model_file = 'model/model_' + args.network + '_' + str(epoch) + '.pth'
         torch.save(decoder.state_dict(), model_file)
@@ -66,36 +66,65 @@ def main(args):
     writer.close()
 
 
-def train(epoch, encoder, decoder, optimizer, cross_entropy_loss, data_loader, word_dict, alpha_c, log_interval, writer):
+def train(epoch, encoder, decoder, optimizer, cross_entropy_loss, data_loader, word_dict, log_interval, writer):
     encoder.eval()
     decoder.train()
 
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
-    for batch_idx, (imgs, captions) in enumerate(data_loader):
-        imgs, captions = Variable(imgs).cuda(), Variable(captions).cuda()
-        img_features = encoder(imgs)
+    for batch_idx, (imgs1, captions1), (imgs2, captions2), tgt_mask, cls_mask in enumerate(data_loader):
+        imgs1 = Variable(imgs1.cuda())
+        captions1 = Variable(captions1.cuda())
+        imgs2 = Variable(imgs2.cuda())
+        captions2 = Variable(captions2.cuda())
+        tgt_mask = Variable(tgt_mask.cuda())
+        cls_mask = Variable(cls_mask.cuda())
+
+        img1_features = encoder(imgs1)
+        img2_features = encoder(imgs2)
+
         optimizer.zero_grad()
-        preds, alphas = decoder(img_features, captions)
-        targets = captions[:, 1:]
+        preds1, alphas1, features1 = decoder(img1_features, captions1)
+        preds2, alphas2, features2 = decoder(img2_features, captions2)
+        targets1 = captions1[:, 1:]
+        targets2 = captions2[:, 1:]
 
-        targets = pack_padded_sequence(targets, [len(tar) - 1 for tar in targets], batch_first=True)[0]
-        preds = pack_padded_sequence(preds, [len(pred) - 1 for pred in preds], batch_first=True)[0]
+        targets1 = pack_padded_sequence(targets1, [len(tar) - 1 for tar in targets1], batch_first=True)[0]
+        preds1 = pack_padded_sequence(preds1, [len(pred) - 1 for pred in preds1], batch_first=True)[0]
+        targets2 = pack_padded_sequence(targets2, [len(tar) - 1 for tar in targets2], batch_first=True)[0]
+        preds2 = pack_padded_sequence(preds2, [len(pred) - 1 for pred in preds2], batch_first=True)[0]
+        features1 = pack_padded_sequence(features1, [len(pred) - 1 for pred in preds1], batch_first=True)[0]
+        features2 = pack_padded_sequence(features2, [len(pred) - 1 for pred in preds2], batch_first=True)[0]
 
-        att_regularization = alpha_c * ((1 - alphas.sum(1))**2).mean()
+        tgt_feat1 = features1 * tgt_mask
+        tgt_feat2 = features2 * tgt_mask
+        cls_feat1 = features1 * cls_mask
+        cls_feat2 = features2 * cls_mask
 
-        loss = cross_entropy_loss(preds, targets)
-        loss += att_regularization
+        infonce_loss = nn.functional.cosine_similarity(tgt_feat1, tgt_feat2, dim=1).mean() - \
+                          nn.functional.cosine_similarity(cls_feat1, cls_feat2, dim=1).mean()
+        
+        club_loss = nn.functional.cosine_similarity(tgt_feat1, tgt_feat2, dim=1).mean() - \
+                          nn.functional.cosine_similarity(cls_feat1, cls_feat2, dim=1).mean()
+
+        ce_loss = cross_entropy_loss(preds1, targets1) + cross_entropy_loss(preds2, targets2)
+        
         loss.backward()
         optimizer.step()
 
-        total_caption_length = calculate_caption_lengths(word_dict, captions)
-        acc1 = accuracy(preds, targets, 1)
-        acc5 = accuracy(preds, targets, 5)
-        losses.update(loss.item(), total_caption_length)
-        top1.update(acc1, total_caption_length)
-        top5.update(acc5, total_caption_length)
+        total_caption_length = calculate_caption_lengths(word_dict, captions1)
+
+        loss = (ce_loss + infonce_loss + club_loss)/total_caption_length
+
+        acc1_1 = accuracy(preds1, targets1, 1)
+        acc1_5 = accuracy(preds1, targets1, 5)
+        acc2_1 = accuracy(preds2, targets2, 1)
+        acc2_5 = accuracy(preds2, targets2, 5)
+
+        losses.update(loss.item() , total_caption_length)
+        top1.update((acc1_1 + acc2_1)/2, total_caption_length)
+        top5.update((acc1_5 + acc2_5)/2, total_caption_length)
 
         if batch_idx % log_interval == 0:
             print('Train Batch: [{0}/{1}]\t'
@@ -121,6 +150,7 @@ def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, word_dict
     hypotheses = []
     with torch.no_grad():
         for batch_idx, (imgs, captions, all_captions) in enumerate(data_loader):
+            print('captions', captions)
             imgs, captions = Variable(imgs).cuda(), Variable(captions).cuda()
             img_features = encoder(imgs)
             preds, alphas = decoder(img_features, captions)
