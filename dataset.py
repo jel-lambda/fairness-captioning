@@ -76,7 +76,7 @@ class ImagePairedCaptionDataset(Dataset):
                     self.image2captions[image_path_pair[1]].add(caption2)
 
         if vocab is None:
-            self.vocab = ['<pad>', '<unk>', '<sos>', '<eos>'] + [word for word, count in self.word_Counter.items() if count >= vocab_min_count]
+            self.vocab = ['<pad>', '<sos>', '<eos>', '<unk>'] + [word for word, count in self.word_Counter.items() if count >= vocab_min_count]
         else:
             self.vocab = vocab
 
