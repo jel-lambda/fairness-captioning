@@ -109,7 +109,7 @@ class ImagePairedCaptionDataset(Dataset):
 
         if self.split_type == 'train':
             return (torch.FloatTensor(img1), torch.LongTensor(caption1)),\
-                   (torch.FloatTensor(img2), , torch.LongTensor(caption2)),\
+                   (torch.FloatTensor(img2), torch.LongTensor(caption2)),\
                    torch.LongTensor(target_word_mask), torch.LongTensor(cls_template_mask)
 
         elif self.split_type == 'val':
@@ -118,7 +118,7 @@ class ImagePairedCaptionDataset(Dataset):
             all_captions2 = [ [self.word2idx['<sos>']] + [self.word2idx[word] for word in caption.split(' ')] + [self.word2idx['<eos>']]
                             for caption in self.image2captions[img_path2]]
             return (torch.FloatTensor(img1), torch.LongTensor(caption1), torch.LongTensor(all_captions1)),\
-                   (torch.FloatTensor(img2), , torch.LongTensor(caption2), torch.LongTensor(all_captions2)),\
+                   (torch.FloatTensor(img2), torch.LongTensor(caption2), torch.LongTensor(all_captions2)),\
                    torch.LongTensor(target_word_mask), torch.LongTensor(cls_template_mask)
 
     def __len__(self):
@@ -126,4 +126,4 @@ class ImagePairedCaptionDataset(Dataset):
 
 
 class ImageCaptionDataset(Dataset):
-    raise NotImplementedError
+    pass
