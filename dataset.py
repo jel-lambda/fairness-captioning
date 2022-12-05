@@ -15,7 +15,7 @@ def pil_loader(path):
 
 
 class ImagePairedCaptionDataset(Dataset):
-    def __init__(self, transform, images_dir, annotations_dir, split_type='train', vocab_min_count=3, vocab = None):
+    def __init__(self, transform, images_dir, annotations_dir, split_type='train', vocab = None, vocab_min_count=5, ):
         super(ImageCaptionDataset, self).__init__()
         self.split_type = split_type
         self.transform = transform
