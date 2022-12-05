@@ -22,7 +22,7 @@ def generate_json_data(split_path, data_path, max_captions_per_image, min_word_c
             max_length = max(max_length, len(sentence['tokens']))
             word_count.update(sentence['tokens'])
 
-    words = ['<pad>', '<sos>', '<eos>', '<unk>',] + [word for word in word_count.keys() if word_count[word] >= min_word_count]
+    words = ['<start>', '<eos>', '<unk>', '<pad>'] + [word for word in word_count.keys() if word_count[word] >= min_word_count]
     word_dict = {word: idx for idx, word in enumerate(words)}
 
     with open(data_path + '/word_dict.json', 'w') as f:
