@@ -11,9 +11,10 @@ from tensorboardX import SummaryWriter
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence
 from torchvision import transforms
+from torch.utils.data import DataLoader
 
 from mi_estimators import *
-from dataset import ImageCaptionDataset
+from dataset import ImagePairedCaptionDataset
 from decoder import Decoder
 from encoder import Encoder
 from utils import AverageMeter, accuracy, calculate_caption_lengths
@@ -44,19 +45,18 @@ def main(args):
 
     optimizer = optim.Adam(decoder.filter.parameters(), lr=args.lr)
     scheduler = optim.lr_scheduler.StepLR(optimizer, args.step_size)
-    cross_entropy_loss = nn.CrossEntropyLoss(ignore_index=ImageCaptionDataset.pad_idx).cuda()
+    cross_entropy_loss = nn.CrossEntropyLoss(ignore_index=ImagePairedCaptionDataset.pad_idx).cuda()
     infoNCE_loss = eval("InfoNCE")(2,2,5).cuda()
     optimizer_nce = optim.Adam(infoNCE_loss.parameters(), lr=args.lr)
     club_loss = eval("CLUB")(2,2,5).cuda()
     optimizer_club = optim.Adam(club_loss.parameters(), lr=args.lr)
 
-    train_loader = torch.utils.data.DataLoader(
-        ImageCaptionDataset(data_transforms, args.data),
-        batch_size=args.batch_size, shuffle=True, num_workers=1)
+    
+    train_dataset = ImagePairedCaptionDataset(transform=data_transforms, images_dir='./data/final/', annotations_dir='./data/annotations/', word_dict=word_dict, split_type='train')
+    val_dataset = ImagePairedCaptionDataset(transform=data_transforms, images_dir='./data/final/', annotations_dir='./data/annotations/', word_dict=word_dict, split_type='val')
 
-    val_loader = torch.utils.data.DataLoader(
-        ImageCaptionDataset(data_transforms, args.data, split_type='val'),
-        batch_size=args.batch_size, shuffle=True, num_workers=1)
+    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=1, collate_fn=train_dataset.collate_fn)
+    val_loader= DataLoader(val_dataset, shuffle=False, batch_size=1, collate_fn=val_dataset.collate_fn)
 
     print('Starting training with {}'.format(args))
     for epoch in range(1, args.epochs + 1):
@@ -65,8 +65,7 @@ def main(args):
         train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cross_entropy_loss, infoNCE_loss, club_loss,
               train_loader, word_dict, args.log_interval, writer, args.batch_size)
         validate(epoch, encoder, decoder, cross_entropy_loss, val_loader,
-
-                 word_dict, args.alpha_c, args.log_interval, writer)
+                infoNCE_loss, club_loss, word_dict, args.alpha_c, args.log_interval, writer)
         model_file = 'model/model_' + args.network + '_' + str(epoch) + '.pth'
         torch.save(decoder.state_dict(), model_file)
         print('Saved model to ' + model_file)
@@ -80,39 +79,40 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
     club_loss.eval()
     infoNCE_loss.eval()
 
+    infonce_losses = AverageMeter()
+    club_losses = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
 
-    for batch_idx, (imgs1, captions1), (imgs2, captions2), tgt_mask, cls_mask in enumerate(data_loader):
+    for (img1, cap1), (img2, cap2), club_mask, nce_mask in enumerate(data_loader):
+        img1 = Variable(img1.cuda())
+        cap1 = Variable(cap1.cuda())
+        img2 = Variable(img2.cuda())
+        cap2 = Variable(cap2.cuda())
+        club_mask = Variable(club_mask.cuda())
+        nce_mask = Variable(nce_mask.cuda())
 
-        imgs1 = Variable(imgs1.cuda())
-        captions1 = Variable(captions1.cuda())
-        imgs2 = Variable(imgs2.cuda())
-        captions2 = Variable(captions2.cuda())
-        tgt_mask = Variable(tgt_mask.cuda())
-        cls_mask = Variable(cls_mask.cuda())
-
-        img1_features = encoder(imgs1)
-        img2_features = encoder(imgs2)
+        img1_features = encoder(img1)
+        img2_features = encoder(img2)
         
         optimizer.zero_grad()
-        preds1, _, features1 = decoder(img1_features, captions1)
-        preds2, _, features2 = decoder(img2_features, captions2)
-        targets1 = captions1[:, 1:]
-        targets2 = captions2[:, 1:]
+        preds1, _, features1 = decoder(img1_features, cap1)
+        preds2, _, features2 = decoder(img2_features, cap2)
+        targets1 = cap1[:, 1:]
+        targets2 = cap2[:, 1:]
 
-        tgt_feat1 = features1 * tgt_mask.unsqueeze(2)
-        tgt_feat2 = features2 * tgt_mask.unsqueeze(2)
-        cls_feat1 = features1 * cls_mask.unsqueeze(2)
-        cls_feat2 = features2 * cls_mask.unsqueeze(2)
+        club_feat1 = features1 * club_mask.unsqueeze(2)
+        club_feat2 = features2 * club_mask.unsqueeze(2)
+        nce_feat1 = features1 * nce_mask.unsqueeze(2)
+        nce_feat2 = features2 * nce_mask.unsqueeze(2)
 
         # num_negative = cls_mask.sum(1).max().item()
         
-        c_loss = club_loss(tgt_feat1, tgt_feat2)
-        infonce_loss = infoNCE_loss(cls_feat1, cls_feat2)
+        c_loss = club_loss(club_feat1, club_feat2)
+        infonce_loss = infoNCE_loss(nce_feat1, nce_feat2)
 
-        total_caption_length = calculate_caption_lengths(word_dict, captions1)
+        total_caption_length = calculate_caption_lengths(word_dict, cap1)
 
         ce_loss = cross_entropy_loss(preds1, targets1) + cross_entropy_loss(preds2, targets2)
 
@@ -128,11 +128,11 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         optimizer_club.step()
         optimizer_nce.step()
 
-        c_loss = club_loss(tgt_feat1, tgt_feat2)
-        infonce_loss = infoNCE_loss(cls_feat1, cls_feat2)
+        c_loss = club_loss(club_feat1, club_feat2)
+        infonce_loss = infoNCE_loss(nce_feat1, nce_feat2)
 
         loss = (ce_loss + infonce_loss + c_loss)/total_caption_length
-        
+
         loss.backward()
         optimizer.step()
 
@@ -141,92 +141,151 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         acc2_1 = accuracy(preds2, targets2, 1)
         acc2_5 = accuracy(preds2, targets2, 5)
 
+
         losses.update(loss.item() , total_caption_length)
         top1.update((acc1_1 + acc2_1)/2, total_caption_length)
         top5.update((acc1_5 + acc2_5)/2, total_caption_length)
 
-        if batch_idx % log_interval == 0:
-            print('Train Batch: [{0}/{1}]\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Top 1 Accuracy {top1.val:.3f} ({top1.avg:.3f})\t'
-                  'Top 5 Accuracy {top5.val:.3f} ({top5.avg:.3f})'.format(
-                      batch_idx, len(data_loader), loss=losses, top1=top1, top5=top5))
+        # if batch_idx % log_interval == 0:
+        #     print('Train Batch: [{0}/{1}]\t'
+        #           'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+        #           'Top 1 Accuracy {top1.val:.3f} ({top1.avg:.3f})\t'
+        #           'Top 5 Accuracy {top5.val:.3f} ({top5.avg:.3f})'.format(
+        #               batch_idx, len(data_loader), loss=losses, top1=top1, top5=top5))
+    writer.add_scalar('infoNCE', infonce_losses.avg, epoch)
+    writer.add_scalar('club_loss', club_losses.avg, epoch)
     writer.add_scalar('train_loss', losses.avg, epoch)
     writer.add_scalar('train_top1_acc', top1.avg, epoch)
     writer.add_scalar('train_top5_acc', top5.avg, epoch)
 
-def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, word_dict, alpha_c, log_interval, writer):
+def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, infoNCE_loss, club_loss, word_dict, alpha_c, log_interval, writer):
     encoder.eval()
     decoder.eval()
+    club_loss.eval()
+    infoNCE_loss.eval()
+
+    infonce_losses = AverageMeter()
+    club_losses = AverageMeter()
 
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
 
     # used for calculating bleu scores
-    references = []
-    hypotheses = []
+    references1 = []
+    hypotheses1 = []
+    references2 = []
+    hypotheses2 = []
     with torch.no_grad():
-        for batch_idx, (imgs, captions, all_captions) in enumerate(data_loader):
-            print('captions', captions)
-            imgs, captions = Variable(imgs).cuda(), Variable(captions).cuda()
-            img_features = encoder(imgs)
-            preds, alphas = decoder(img_features, captions)
-            targets = captions[:, 1:]
+        for (img1, cap1, all_cap1), (img2, cap2, all_cap2), club_mask, nce_mask in enumerate(data_loader):
+            print(img1.shape)
+            print('captions', all_cap2)
 
-            targets = pack_padded_sequence(targets, [len(tar) - 1 for tar in targets], batch_first=True)[0]
-            packed_preds = pack_padded_sequence(preds, [len(pred) - 1 for pred in preds], batch_first=True)[0]
+            img1 = Variable(img1.cuda())
+            cap1 = Variable(cap1.cuda())
+            img2 = Variable(img2.cuda())
+            cap2 = Variable(cap2.cuda())
+            club_mask = Variable(club_mask.cuda())
+            nce_mask = Variable(nce_mask.cuda())
 
-            att_regularization = alpha_c * ((1 - alphas.sum(1))**2).mean()
+            img1_features = encoder(img1)
+            img2_features = encoder(img2)
+            
+            preds1, _, features1 = decoder(img1_features, cap1)
+            preds2, _, features2 = decoder(img2_features, cap2)
+            targets1 = cap1[:, 1:]
+            targets2 = cap2[:, 1:]
 
-            loss = cross_entropy_loss(packed_preds, targets)
-            loss += att_regularization
+            club_feat1 = features1 * club_mask.unsqueeze(2)
+            club_feat2 = features2 * club_mask.unsqueeze(2)
+            nce_feat1 = features1 * nce_mask.unsqueeze(2)
+            nce_feat2 = features2 * nce_mask.unsqueeze(2)
 
-            total_caption_length = calculate_caption_lengths(word_dict, captions)
-            acc1 = accuracy(packed_preds, targets, 1)
-            acc5 = accuracy(packed_preds, targets, 5)
-            losses.update(loss.item(), total_caption_length)
-            top1.update(acc1, total_caption_length)
-            top5.update(acc5, total_caption_length)
+            c_loss = club_loss(club_feat1, club_feat2)
+            infonce_loss = infoNCE_loss(nce_feat1, nce_feat2)
+            ce_loss = cross_entropy_loss(preds1, targets1) + cross_entropy_loss(preds2, targets2)
 
-            for cap_set in all_captions.tolist():
-                caps = []
+            loss = (ce_loss + infonce_loss + c_loss)/total_caption_length
+
+            total_caption_length = calculate_caption_lengths(word_dict, cap1)
+
+            acc1_1 = accuracy(preds1, targets1, 1)
+            acc1_5 = accuracy(preds1, targets1, 5)
+            acc2_1 = accuracy(preds2, targets2, 1)
+            acc2_5 = accuracy(preds2, targets2, 5)
+
+            losses.update(loss.item() , total_caption_length)
+            top1.update((acc1_1 + acc2_1)/2, total_caption_length)
+            top5.update((acc1_5 + acc2_5)/2, total_caption_length)
+
+            for cap_set in all_cap1.tolist():
+                caps1 = []
                 for caption in cap_set:
                     cap = [word_idx for word_idx in caption
                                     if word_idx != word_dict['<start>'] and word_idx != word_dict['<pad>']]
-                    caps.append(cap)
-                references.append(caps)
+                    caps1.append(cap)
+                references1.append(caps1)
 
-            word_idxs = torch.max(preds, dim=2)[1]
-            for idxs in word_idxs.tolist():
-                hypotheses.append([idx for idx in idxs
+            for cap_set in all_cap2.tolist():
+                caps2 = []
+                for caption in cap_set:
+                    cap = [word_idx for word_idx in caption
+                                    if word_idx != word_dict['<start>'] and word_idx != word_dict['<pad>']]
+                    caps2.append(cap)
+                references2.append(caps2)
+
+            word_idxs1 = torch.max(preds1, dim=2)[1]
+            for idxs in word_idxs1.tolist():
+                hypotheses1.append([idx for idx in idxs
                                        if idx != word_dict['<start>'] and idx != word_dict['<pad>']])
 
-            if batch_idx % log_interval == 0:
-                print('Validation Batch: [{0}/{1}]\t'
-                      'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                      'Top 1 Accuracy {top1.val:.3f} ({top1.avg:.3f})\t'
-                      'Top 5 Accuracy {top5.val:.3f} ({top5.avg:.3f})'.format(
-                          batch_idx, len(data_loader), loss=losses, top1=top1, top5=top5))
+            word_idxs2 = torch.max(preds2, dim=2)[1]
+            for idxs in word_idxs2.tolist():
+                hypotheses2.append([idx for idx in idxs
+                                       if idx != word_dict['<start>'] and idx != word_dict['<pad>']])
+            # if batch_idx % log_interval == 0:
+            #     print('Validation Batch: [{0}/{1}]\t'
+            #           'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+            #           'Top 1 Accuracy {top1.val:.3f} ({top1.avg:.3f})\t'
+            #           'Top 5 Accuracy {top5.val:.3f} ({top5.avg:.3f})'.format(
+            #               batch_idx, len(data_loader), loss=losses, top1=top1, top5=top5))
+        writer.add_scalar('val_infoNCE', infonce_losses.avg, epoch)
+        writer.add_scalar('val_club_loss', club_losses.avg, epoch)
         writer.add_scalar('val_loss', losses.avg, epoch)
         writer.add_scalar('val_top1_acc', top1.avg, epoch)
         writer.add_scalar('val_top5_acc', top5.avg, epoch)
 
-        bleu_1 = corpus_bleu(references, hypotheses, weights=(1, 0, 0, 0))
-        bleu_2 = corpus_bleu(references, hypotheses, weights=(0.5, 0.5, 0, 0))
-        bleu_3 = corpus_bleu(references, hypotheses, weights=(0.33, 0.33, 0.33, 0))
-        bleu_4 = corpus_bleu(references, hypotheses)
+        bleu_1_1 = corpus_bleu(references1, hypotheses1, weights=(1, 0, 0, 0))
+        bleu_1_2 = corpus_bleu(references1, hypotheses1, weights=(0.5, 0.5, 0, 0))
+        bleu_1_3 = corpus_bleu(references1, hypotheses1, weights=(0.33, 0.33, 0.33, 0))
+        bleu_1_4 = corpus_bleu(references1, hypotheses1)
 
-        writer.add_scalar('val_bleu1', bleu_1, epoch)
-        writer.add_scalar('val_bleu2', bleu_2, epoch)
-        writer.add_scalar('val_bleu3', bleu_3, epoch)
-        writer.add_scalar('val_bleu4', bleu_4, epoch)
+        writer.add_scalar('val_bleu1_1', bleu_1_1, epoch)
+        writer.add_scalar('val_bleu1_2', bleu_1_2, epoch)
+        writer.add_scalar('val_bleu1_3', bleu_1_3, epoch)
+        writer.add_scalar('val_bleu1_4', bleu_1_4, epoch)
+
+        bleu_2_1 = corpus_bleu(references2, hypotheses2, weights=(1, 0, 0, 0))
+        bleu_2_2 = corpus_bleu(references2, hypotheses2, weights=(0.5, 0.5, 0, 0))
+        bleu_2_3 = corpus_bleu(references2, hypotheses2, weights=(0.33, 0.33, 0.33, 0))
+        bleu_2_4 = corpus_bleu(references2, hypotheses2)
+
+        writer.add_scalar('val_bleu2_1', bleu_2_1, epoch)
+        writer.add_scalar('val_bleu2_2', bleu_2_2, epoch)
+        writer.add_scalar('val_bleu2_3', bleu_2_3, epoch)
+        writer.add_scalar('val_bleu2_4', bleu_2_4, epoch)   
+
         print('Validation Epoch: {}\t'
               'BLEU-1 ({})\t'
               'BLEU-2 ({})\t'
               'BLEU-3 ({})\t'
-              'BLEU-4 ({})\t'.format(epoch, bleu_1, bleu_2, bleu_3, bleu_4))
-
+              'BLEU-4 ({})\t'.format(epoch, bleu_1_1, bleu_1_2, bleu_1_3, bleu_1_4))
+            
+        print('Validation Epoch: {}\t'  
+                'BLEU-1 ({})\t'
+                'BLEU-2 ({})\t'
+                'BLEU-3 ({})\t'
+                'BLEU-4 ({})\t'.format(epoch, bleu_2_1, bleu_2_2, bleu_2_3, bleu_2_4))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Show, Attend and Tell')
