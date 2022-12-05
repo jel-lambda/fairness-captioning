@@ -1,35 +1,44 @@
 import os
+from glob import glob
+import json
 
-base = "./" # directory which have backgrounds folder and final folder
-bg_folder = os.path.join(base, 'backgrounds/')
-final_folder = os.path.join(base, 'final/')
+bg_folder = "./data/backgrounds/30_place_dataset/" # directory to backgrounds
+final_folder = "./data/final" # directory to final sythesized images
+wrong2correct_json = './data_gen/wrong2correct.json'
 
 bg_classes = os.listdir(bg_folder)
 
+wrong2correct = {}
+
+temp_bg_paths = []
+temp_final_dirs = []
 
 for bg_class in bg_classes:
-    bg_images = os.listdir(os.path.join(bg_folder, bg_class))
-    i = 100
-    for image in bg_images:
+    original_bg_paths = sorted( glob(os.path.join(bg_folder, bg_class, '*.jpg')) )
+    wrong_bg_names = [ os.path.basename(bg_path).split('.')[0] for bg_path in original_bg_paths ]
+    
+    for i, original_bg_path in enumerate( original_bg_paths ):
+       
+        wrong_bg_name = os.path.basename(original_bg_path).split('.')[0]
+        wrong2correct[wrong_bg_name] = f'{bg_class}_{i}'
 
-        if not image.endswith('.jpg'):
-            pass
-        #print(bg_class)
-        print(os.path.join(bg_folder, bg_class, image))
-        print(bg_folder+bg_class+'/_'+str(i)+'.jpg')
-        print(os.path.join(final_folder,image.split(".")[0]))
-        print(final_folder+bg_class+"_"+str(i))
-        os.rename(os.path.join(bg_folder, bg_class, image), bg_folder+bg_class+'/'+bg_class+"_"+str(i)+'.jpg')
-        os.rename(os.path.join(final_folder,image.split(".")[0]),final_folder+bg_class+"_"+str(i))
-        i += 1
+        temp_bg_path = os.path.join( os.path.dirname(original_bg_path),f'_{bg_class}_{i}.jpg' )
+        os.rename(original_bg_path, temp_bg_path)
 
-for bg_class in bg_classes:
-    bg_images = os.listdir(os.path.join(bg_folder, bg_class))
-    i = 0
-    for image in bg_images:
-        if not image.endswith('.jpg'):
-            pass
-        #print(bg_class)
-        os.rename(os.path.join(bg_folder, bg_class, image), bg_folder+bg_class+'/'+bg_class+"_"+str(i)+'.jpg')
-        os.rename(os.path.join(final_folder,image.split(".")[0]),final_folder+bg_class+"_"+str(i))
-        i += 1
+        original_final_dir = os.path.join( final_folder, wrong_bg_name ) 
+        temp_final_dir = os.path.join( final_folder, f'_{bg_class}_{i}' )
+        os.rename(original_final_dir, temp_final_dir)
+
+        temp_bg_paths.append(temp_bg_path)
+        temp_final_dirs.append(temp_final_dir)
+
+for temp_bg_path in temp_bg_paths:
+    correct_bg_path = os.path.join( os.path.dirname(temp_bg_path), os.path.basename(temp_bg_path)[1:] )
+    os.rename(temp_bg_path, correct_bg_path)
+
+for temp_final_dir in temp_final_dirs:
+    correct_final_dir = os.path.join( os.path.dirname(temp_final_dir), os.path.basename(temp_final_dir)[1:] )
+    os.rename(temp_final_dir, correct_final_dir)
+
+with open(wrong2correct_json, 'w') as f:
+    json.dump(wrong2correct, f, indent=4)
