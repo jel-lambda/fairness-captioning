@@ -92,8 +92,8 @@ class ImagePairedCaptionDataset(Dataset):
             img1, img2 = self.transform(img1), self.transform(img2)
 
         caption1, caption2 = self.caption_pairs[index]
-        caption1 = [self.word2idx['<sos>']] + [self.word2idx[word] for word in caption1.split(' ')] + [self.word2idx['<eos>']]
-        caption2 = [self.word2idx['<sos>']] + [self.word2idx[word] for word in caption2.split(' ')] + [self.word2idx['<eos>']]
+        caption1 = [self.word2idx['<start>']] + [self.word2idx[word] for word in caption1.split(' ')] + [self.word2idx['<eos>']]
+        caption2 = [self.word2idx['<start>']] + [self.word2idx[word] for word in caption2.split(' ')] + [self.word2idx['<eos>']]
 
         # Masks for CLUB and InfoNCE
         CLUB_mask = torch.zeros( len(caption1) )
