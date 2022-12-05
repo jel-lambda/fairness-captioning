@@ -61,14 +61,17 @@ def main(args):
     print('Starting training with {}'.format(args))
     for epoch in range(1, args.epochs + 1):
         scheduler.step()
+
         train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cross_entropy_loss, infoNCE_loss, club_loss,
               train_loader, word_dict, args.log_interval, writer, args.batch_size)
         validate(epoch, encoder, decoder, cross_entropy_loss, val_loader,
+
                  word_dict, args.alpha_c, args.log_interval, writer)
         model_file = 'model/model_' + args.network + '_' + str(epoch) + '.pth'
         torch.save(decoder.state_dict(), model_file)
         print('Saved model to ' + model_file)
     writer.close()
+
 
 
 def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cross_entropy_loss, infoNCE_loss, club_loss, data_loader, word_dict, log_interval, writer, batch_size):
@@ -80,8 +83,9 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
-    
+
     for batch_idx, (imgs1, captions1), (imgs2, captions2), tgt_mask, cls_mask in enumerate(data_loader):
+
         imgs1 = Variable(imgs1.cuda())
         captions1 = Variable(captions1.cuda())
         imgs2 = Variable(imgs2.cuda())
@@ -131,7 +135,7 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         
         loss.backward()
         optimizer.step()
-        
+
         acc1_1 = accuracy(preds1, targets1, 1)
         acc1_5 = accuracy(preds1, targets1, 5)
         acc2_1 = accuracy(preds2, targets2, 1)
