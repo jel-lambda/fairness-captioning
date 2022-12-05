@@ -12,6 +12,7 @@ from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence
 from torchvision import transforms
 
+from mi_estimators import *
 from dataset import ImageCaptionDataset
 from decoder import Decoder
 from encoder import Encoder
@@ -41,9 +42,13 @@ def main(args):
     encoder.cuda()
     decoder.cuda()
 
-    optimizer = optim.Adam(decoder.parameters(), lr=args.lr)
+    optimizer = optim.Adam(decoder.filter.parameters(), lr=args.lr)
     scheduler = optim.lr_scheduler.StepLR(optimizer, args.step_size)
-    cross_entropy_loss = nn.CrossEntropyLoss().cuda()
+    cross_entropy_loss = nn.CrossEntropyLoss(ignore_index=ImageCaptionDataset.pad_idx).cuda()
+    infoNCE_loss = eval("InfoNCE")(2,2,5).cuda()
+    optimizer_nce = optim.Adam(infoNCE_loss.parameters(), lr=args.lr)
+    club_loss = eval("CLUB")(2,2,5).cuda()
+    optimizer_club = optim.Adam(club_loss.parameters(), lr=args.lr)
 
     train_loader = torch.utils.data.DataLoader(
         ImageCaptionDataset(data_transforms, args.data),
@@ -56,9 +61,9 @@ def main(args):
     print('Starting training with {}'.format(args))
     for epoch in range(1, args.epochs + 1):
         scheduler.step()
-        train(epoch, encoder, decoder, optimizer, cross_entropy_loss,
-              train_loader, word_dict, args.log_interval, writer)
-        validate(epoch, encoder, decoder, filter, cross_entropy_loss, val_loader,
+        train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cross_entropy_loss, infoNCE_loss, club_loss,
+              train_loader, word_dict, args.log_interval, writer, args.batch_size)
+        validate(epoch, encoder, decoder, cross_entropy_loss, val_loader,
                  word_dict, args.alpha_c, args.log_interval, writer)
         model_file = 'model/model_' + args.network + '_' + str(epoch) + '.pth'
         torch.save(decoder.state_dict(), model_file)
@@ -66,14 +71,17 @@ def main(args):
     writer.close()
 
 
-def train(epoch, encoder, decoder, optimizer, cross_entropy_loss, data_loader, word_dict, log_interval, writer):
+def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cross_entropy_loss, infoNCE_loss, club_loss, data_loader, word_dict, log_interval, writer, batch_size):
     encoder.eval()
     decoder.train()
+    club_loss.eval()
+    infoNCE_loss.eval()
 
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
-    for batch_idx, (imgs1, captions1), (imgs2, captions2), tgt_masks, cls_masks in enumerate(data_loader):
+    
+    for batch_idx, (imgs1, captions1), (imgs2, captions2), tgt_mask, cls_mask in enumerate(data_loader):
         imgs1 = Variable(imgs1.cuda())
         captions1 = Variable(captions1.cuda())
         imgs2 = Variable(imgs2.cuda())
@@ -83,33 +91,47 @@ def train(epoch, encoder, decoder, optimizer, cross_entropy_loss, data_loader, w
 
         img1_features = encoder(imgs1)
         img2_features = encoder(imgs2)
-
+        
         optimizer.zero_grad()
-        preds1, alphas1, features1 = decoder(img1_features, captions1)
-        preds2, alphas2, features2 = decoder(img2_features, captions2)
+        preds1, _, features1 = decoder(img1_features, captions1)
+        preds2, _, features2 = decoder(img2_features, captions2)
         targets1 = captions1[:, 1:]
         targets2 = captions2[:, 1:]
 
-        tgt_feat1 = features1 * tgt_masks
-        tgt_feat2 = features2 * tgt_masks
-        cls_feat1 = features1 * cls_masks
-        cls_feat2 = features2 * cls_masks
+        tgt_feat1 = features1 * tgt_mask.unsqueeze(2)
+        tgt_feat2 = features2 * tgt_mask.unsqueeze(2)
+        cls_feat1 = features1 * cls_mask.unsqueeze(2)
+        cls_feat2 = features2 * cls_mask.unsqueeze(2)
 
-        infonce_loss = nn.functional.cosine_similarity(tgt_feat1, tgt_feat2, dim=1).mean() - \
-                          nn.functional.cosine_similarity(cls_feat1, cls_feat2, dim=1).mean()
+        # num_negative = cls_mask.sum(1).max().item()
         
-        club_loss = nn.functional.cosine_similarity(tgt_feat1, tgt_feat2, dim=1).mean() - \
-                          nn.functional.cosine_similarity(cls_feat1, cls_feat2, dim=1).mean()
-
-        ce_loss = cross_entropy_loss(preds1, targets1) + cross_entropy_loss(preds2, targets2)
-        
-        loss.backward()
-        optimizer.step()
+        c_loss = club_loss(tgt_feat1, tgt_feat2)
+        infonce_loss = infoNCE_loss(cls_feat1, cls_feat2)
 
         total_caption_length = calculate_caption_lengths(word_dict, captions1)
 
-        loss = (ce_loss + infonce_loss + club_loss)/total_caption_length
+        ce_loss = cross_entropy_loss(preds1, targets1) + cross_entropy_loss(preds2, targets2)
 
+        club_loss.train()
+        infoNCE_loss.train()
+
+        optimizer_club.zero_grad()
+        optimizer_nce.zero_grad()
+
+        club_loss.backward()
+        infoNCE_loss.backward()
+
+        optimizer_club.step()
+        optimizer_nce.step()
+
+        c_loss = club_loss(tgt_feat1, tgt_feat2)
+        infonce_loss = infoNCE_loss(cls_feat1, cls_feat2)
+
+        loss = (ce_loss + infonce_loss + c_loss)/total_caption_length
+        
+        loss.backward()
+        optimizer.step()
+        
         acc1_1 = accuracy(preds1, targets1, 1)
         acc1_5 = accuracy(preds1, targets1, 5)
         acc2_1 = accuracy(preds2, targets2, 1)
@@ -128,7 +150,6 @@ def train(epoch, encoder, decoder, optimizer, cross_entropy_loss, data_loader, w
     writer.add_scalar('train_loss', losses.avg, epoch)
     writer.add_scalar('train_top1_acc', top1.avg, epoch)
     writer.add_scalar('train_top5_acc', top5.avg, epoch)
-
 
 def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, word_dict, alpha_c, log_interval, writer):
     encoder.eval()

@@ -91,10 +91,10 @@ def generate_caption_visualization(encoder, decoder, img_path, word_dict, beam_s
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Show, Attend and Tell Caption Generator')
-    parser.add_argument('--img-path', type=str, help='path to image', default='data/backgrounds/30_place_dataset/bathroom/bathroom_3.jpg')
+    parser.add_argument('--img-path', type=str, help='path to image', default='./data/backgrounds/bathroom/bathroom_0.jpg')
     parser.add_argument('--network', choices=['vgg19', 'resnet152'], default='vgg19',
                         help='Network to use in the encoder (default: vgg19)')
-    parser.add_argument('--model', type=str, help='path to model paramters', default='data/pretrained/VGG19_decoder.pth')
+    parser.add_argument('--model', type=str, help='path to model paramters', default='./model_10.pth', default='data/pretrained/VGG19_decoder.pth')
     parser.add_argument('--data-path', type=str, default='data/coco',
                         help='path to data (default: data/coco)')
     parser.add_argument('--output-img-path', type=str, help='path to attention output image')

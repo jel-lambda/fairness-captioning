@@ -5,3 +5,4 @@ torchvision>=0.2.1
 tensorboardX
 matplotlib==3.6.2
 scikit-image==0.19.3
+info_nce_pytorch-0.1.4-py3-none-any.whl
