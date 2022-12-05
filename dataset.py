@@ -15,7 +15,7 @@ def pil_loader(path):
 
 
 class ImagePairedCaptionDataset(Dataset):
-    def __init__(self, transform, images_dir, annotations_dir, split_type='train', vocab_min_count=3, vocab = None):
+    def __init__(self, transform, images_dir, annotations_dir, split_type='train', vocab = None, vocab_min_count=5, ):
         super(ImageCaptionDataset, self).__init__()
         self.split_type = split_type
         self.transform = transform
@@ -76,7 +76,7 @@ class ImagePairedCaptionDataset(Dataset):
                     self.image2captions[image_path_pair[1]].add(caption2)
 
         if vocab is None:
-            self.vocab = ['<pad>', '<unk>', '<sos>', '<eos>'] + [word for word, count in self.word_Counter.items() if count >= vocab_min_count]
+            self.vocab = ['<pad>', '<sos>', '<eos>', '<unk>'] + [word for word, count in self.word_Counter.items() if count >= vocab_min_count]
         else:
             self.vocab = vocab
 
@@ -108,21 +108,55 @@ class ImagePairedCaptionDataset(Dataset):
         cls_template_mask[self.cls_template_idxs[index]] = 1
 
         if self.split_type == 'train':
-            return (torch.FloatTensor(img1), torch.LongTensor(caption1)),\
-                   (torch.FloatTensor(img2), torch.LongTensor(caption2)),\
-                   torch.LongTensor(target_word_mask), torch.LongTensor(cls_template_mask)
+            return (torch.FloatTensor(img1), caption1),\
+                   (torch.FloatTensor(img2), caption2),\
+                   target_word_mask, cls_template_mask
 
         elif self.split_type == 'val':
             all_captions1 = [ [self.word2idx['<sos>']] + [self.word2idx[word] for word in caption.split(' ')] + [self.word2idx['<eos>']]
                             for caption in self.image2captions[img_path1]]
             all_captions2 = [ [self.word2idx['<sos>']] + [self.word2idx[word] for word in caption.split(' ')] + [self.word2idx['<eos>']]
                             for caption in self.image2captions[img_path2]]
-            return (torch.FloatTensor(img1), torch.LongTensor(caption1), torch.LongTensor(all_captions1)),\
-                   (torch.FloatTensor(img2), torch.LongTensor(caption2), torch.LongTensor(all_captions2)),\
-                   torch.LongTensor(target_word_mask), torch.LongTensor(cls_template_mask)
+            return (torch.FloatTensor(img1), caption1, all_captions1),\
+                   (torch.FloatTensor(img2), caption2, all_captions2),\
+                   target_word_mask, cls_template_mask
 
     def __len__(self):
         return len(self.img_path_pairs)
+
+
+    def collate_fn(self, data):
+
+        if self.split_type == 'train':
+            (img1s, caption1s), (img2s, caption2s), target_word_masks, cls_template_masks = zip(*data)
+            max_caption_len = max( max([len(caption1) for caption1 in caption1s]), max([len(caption2) for caption2 in caption2s]) )
+
+        elif self.split_type == 'val':
+            (img1s, caption1s, all_captions1s), (img2s, caption2s, all_captions2s), target_word_masks, cls_template_masks = zip(*data)
+            max_caption_len = 0
+            for all_captions in all_captions1s + all_captions2s:
+                max_caption_len = max( max_caption_len, max([len(caption) for caption in all_captions]) )
+            
+        caption1s = [caption1 + [self.pad_idx] * (max_caption_len - len(caption1)) for caption1 in caption1s]
+        caption2s = [caption2 + [self.pad_idx] * (max_caption_len - len(caption2)) for caption2 in caption2s]
+        target_word_masks = [mask + [0] * (max_caption_len - len(mask)) for mask in target_word_masks]
+        cls_template_masks = [mask + [0] * (max_caption_len - len(mask)) for mask in cls_template_masks]
+
+        if self.split_type == 'train':
+            return torch.stack(img1s), torch.LongTensor(caption1s),\
+                   torch.stack(img2s), torch.LongTensor(caption2s),\
+                   torch.LongTensor(target_word_masks), torch.LongTensor(cls_template_masks)
+
+        elif self.split_type == 'val':
+            all_captions1s = [ [caption + [self.pad_idx] * (max_caption_len - len(caption)) for caption in all_captions1]
+                            for all_captions1 in all_captions1s ]
+            all_captions2s = [ [caption + [self.pad_idx] * (max_caption_len - len(caption)) for caption in all_captions2]
+                            for all_captions2 in all_captions2s ]
+
+            return torch.stack(img1s), torch.LongTensor(caption1s), torch.LongTensor(all_captions1s),\
+                   torch.stack(img2s), torch.LongTensor(caption2s), torch.LongTensor(all_captions2s),\
+                   torch.LongTensor(target_word_masks), torch.LongTensor(cls_template_masks)
+
 
 
 class ImageCaptionDataset(Dataset):
