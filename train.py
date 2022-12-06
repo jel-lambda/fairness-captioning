@@ -250,8 +250,8 @@ def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, infoNCE_l
             acc2_5 = accuracy(preds2, targets2, target_lens2, 5)
 
             losses.update(loss.item() , total_caption_length)
-            top1.update((acc1_1 + acc2_1)/2, total_caption_length)
-            top5.update((acc1_5 + acc2_5)/2, total_caption_length)
+            top1.update((acc1_1 + acc2_1)/(2*total_caption_length), total_caption_length)
+            top5.update((acc1_5 + acc2_5)/(2*total_caption_length), total_caption_length)
 
             for cap_set in all_cap1.tolist():
                 caps1 = []
