@@ -72,13 +72,14 @@ def main(args):
 
         train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cross_entropy_loss_train, infoNCE, club,
               train_loader, word_dict, args.log_interval, writer)
-        validate(epoch, encoder, decoder, cross_entropy_loss_val, val_loader,
-                infoNCE, club, word_dict, args.alpha_c, args.log_interval, writer)
         if not os.path.exists('model/'):
             os.makedirs('model/')
         model_file = 'model/model_' + args.network + '_' + str(epoch) + '.pth'
         torch.save(decoder.state_dict(), model_file)
         print('Saved model to ' + model_file)
+        validate(epoch, encoder, decoder, cross_entropy_loss_val, val_loader,
+                infoNCE, club, word_dict, args.alpha_c, args.log_interval, writer)
+        
     writer.close()
 
 
