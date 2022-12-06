@@ -28,6 +28,10 @@ data_transforms = transforms.Compose([
 
 
 def main(args):
+    
+    if args.gpu_id >= 0:
+        torch.cuda.set_device(args.gpu_id)
+
     writer = SummaryWriter()
     
     word_dict = json.load(open(args.data + '/word_dict.json', 'r'))
@@ -37,7 +41,12 @@ def main(args):
     decoder = Decoder(vocabulary_size, encoder.dim, args.tf)
 
     if args.model:
-        decoder.load_state_dict(torch.load(args.model))
+        print(f'Load pretrained weights for decoder from {args.model}')
+        decoder_dict = decoder.state_dict()
+        for k, v in torch.load(args.model).items():
+            decoder_dict[k] = v
+        decoder.load_state_dict(decoder_dict)
+        decoder.freeze_pretrained()
 
     encoder.cuda()
     decoder.cuda()
@@ -53,11 +62,9 @@ def main(args):
     optimizer_nce = optim.Adam(infoNCE.parameters(), lr=args.lr)
     club = eval("CLUB")(encoder.dim,encoder.dim,args.estimator_hidden_size).cuda()
     optimizer_club = optim.Adam(club.parameters(), lr=args.lr)
-
     
-    
-    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=1, collate_fn=train_dataset.collate_fn)
-    val_loader= DataLoader(val_dataset, shuffle=False, batch_size=1, collate_fn=val_dataset.collate_fn)
+    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=args.batch_size, collate_fn=train_dataset.collate_fn)
+    val_loader= DataLoader(val_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=val_dataset.collate_fn)
 
     print('Starting training with {}'.format(args))
     for epoch in range(1, args.epochs + 1):
@@ -84,6 +91,8 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
     top1 = AverageMeter()
     top5 = AverageMeter()
 
+    torch.autograd.set_detect_anomaly(True)
+
     for batch_idx, ((img1, cap1), (img2, cap2), club_mask, nce_mask) in enumerate(data_loader):
         
         img1 = Variable(img1.cuda())
@@ -93,16 +102,20 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         club_mask = Variable(club_mask.cuda())
         nce_mask = Variable(nce_mask.cuda())
 
-        img1_features = encoder(img1)
-        img2_features = encoder(img2)
-        
-        optimizer.zero_grad()
-        preds1, _, features1 = decoder(img1_features, cap1)
-        preds2, _, features2 = decoder(img2_features, cap2)
         targets1 = cap1[:, 1:].clone()
         targets2 = cap2[:, 1:].clone()
         club_mask = club_mask[:, 1:].clone()
         nce_mask = nce_mask[:, 1:].clone()
+
+        '''
+        === Forward for updating filter ===
+        '''
+
+        img1_features = encoder(img1)
+        img2_features = encoder(img2)
+        
+        preds1, _, features1 = decoder(img1_features, cap1)
+        preds2, _, features2 = decoder(img2_features, cap2)
 
         # club_feat1 = features1 * club_mask.unsqueeze(2)
         # club_feat2 = features2 * club_mask.unsqueeze(2)
@@ -110,39 +123,52 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         # nce_feat2 = features2 * nce_mask.unsqueeze(2)
 
         # num_negative = cls_mask.sum(1).max().item()
-   
+        decoder.train()
         club.eval()
         infoNCE.eval()
 
         total_caption_length = calculate_caption_lengths(word_dict, cap1)
-        ce_loss = cross_entropy_loss(preds1.view(-1, preds1.size(-1)), targets1.view(-1))\
-            + cross_entropy_loss(preds2.view(-1, preds2.size(-1)), targets2.view(-1))
+        _preds1, _targets1 = preds1.clone().view(-1, preds1.size(-1)), targets1.view(-1)
+        _preds2, _targets2 = preds2.clone().view(-1, preds2.size(-1)), targets2.view(-1)
+        ce_loss = cross_entropy_loss(_preds1, _targets1)\
+            + cross_entropy_loss(_preds2, _targets2)
         
-        with torch.no_grad():
-            club_loss = club(features1, features2, club_mask)
-            infonce_loss = infoNCE(features1, features2, nce_mask)
+        club_loss = club(features1, features2, club_mask)
+        infonce_loss = infoNCE(features1, features2, nce_mask)
 
         loss = (ce_loss + infonce_loss + club_loss) / total_caption_length
-        
+
+        optimizer.zero_grad()
         loss.backward(retain_graph=True)
         optimizer.step()
-        torch.autograd.set_detect_anomaly(True)
+
+
+        """
+        === Forward for updating estimators ===
+        """
+
+        img1_features = encoder(img1)
+        img2_features = encoder(img2)
         
+        preds1, _, features1 = decoder(img1_features, cap1)
+        preds2, _, features2 = decoder(img2_features, cap2)
+
+        decoder.eval()
         club.train()
         infoNCE.train()
         
         club_learning_loss = club.learning_loss(features1, features2, club_mask)
-        infonce_learning_loss = infoNCE.learning_loss(features1, features2, nce_mask)
         
         optimizer_club.zero_grad()
-        optimizer_nce.zero_grad()
-        # infonce_learning_loss.backward()
-        club_learning_loss.backward()
-
-        breakpoint()
-
+        club_learning_loss.backward(retain_graph=True)
         optimizer_club.step()
+
+        infonce_learning_loss = infoNCE.learning_loss(features1, features2, nce_mask)
+
+        optimizer_nce.zero_grad()
+        infonce_learning_loss.backward(retain_graph=True)
         optimizer_nce.step()
+
 
         acc1_1 = accuracy(preds1, targets1, 1)
         acc1_5 = accuracy(preds1, targets1, 5)
@@ -152,8 +178,8 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         infonce_losses.update(infonce_loss.item(), total_caption_length)
         club_losses.update(club_loss.item(), total_caption_length)
         losses.update(loss.item() , total_caption_length)
-        top1.update((acc1_1 + acc2_1)/2, total_caption_length)
-        top5.update((acc1_5 + acc2_5)/2, total_caption_length)
+        top1.update((acc1_1 + acc2_1)/(2*total_caption_length), total_caption_length)
+        top5.update((acc1_5 + acc2_5)/(2*total_caption_length), total_caption_length)
 
         if batch_idx % log_interval == 0:
             print('Train Batch: [{0}/{1}]\t'
@@ -294,8 +320,8 @@ def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, infoNCE_l
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Show, Attend and Tell')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
-                        help='batch size for training (default: 64)')
+    parser.add_argument('--batch-size', type=int, default=16, metavar='N',
+                        help='batch size for training (default: 16)')
     parser.add_argument('--epochs', type=int, default=10, metavar='E',
                         help='number of epochs to train for (default: 10)')
     parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',
@@ -310,11 +336,13 @@ if __name__ == "__main__":
                         help='path to data images (default: data/coco)')
     parser.add_argument('--network', choices=['vgg19', 'resnet152', 'densenet161'], default='vgg19',
                         help='Network to use in the encoder (default: vgg19)')
-    parser.add_argument('--model', type=str, help='path to model')
+    parser.add_argument('--model', type=str, default='data/pretrained/VGG19_decoder.pth',
+                        help='path to model (default: path for vgg19)')
     parser.add_argument('--tf', action='store_true', default=False,
                         help='Use teacher forcing when training LSTM (default: False)')
 
     # custom arguments
     parser.add_argument('--estimator-hidden-size', type=int, default=512)
+    parser.add_argument('--gpu-id', type=int, default=-1)
 
     main(parser.parse_args())

@@ -25,8 +25,8 @@ class AverageMeter(object):
 
 def accuracy(preds, targets, k):
     batch_size = targets.size(0)
-    _, pred = preds.topk(k, 1, True, True)
-    correct = pred.eq(targets.view(-1, 1).expand_as(pred))
+    _, pred = preds.topk(k, 2, True, True)
+    correct = pred.view(-1,k).eq(targets.view(-1,1).expand_as(pred.view(-1,k)))
     correct_total = correct.view(-1).float().sum()
     return correct_total.item() * (100.0 / batch_size)
 
