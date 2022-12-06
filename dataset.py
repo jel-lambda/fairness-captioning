@@ -114,7 +114,7 @@ class ImagePairedCaptionDataset(Dataset):
         if self.split_type == 'train':
             return (torch.FloatTensor(img1), caption1),\
                    (torch.FloatTensor(img2), caption2),\
-                   CLUB_mask.tolist(), InfoNCE_mask.tolist()
+                   CLUB_mask.long().tolist(), InfoNCE_mask.long().tolist()
 
         elif self.split_type == 'val':
             all_captions1 = [ [self.word2idx['<sos>']] + [self.word2idx[word] for word in caption.split(' ')] + [self.word2idx['<eos>']]
@@ -123,7 +123,7 @@ class ImagePairedCaptionDataset(Dataset):
                             for caption in self.image2captions[img_path2]]
             return (torch.FloatTensor(img1), caption1, all_captions1),\
                    (torch.FloatTensor(img2), caption2, all_captions2),\
-                   CLUB_mask.tolist(), InfoNCE_mask.tolist()
+                   CLUB_mask.long().tolist(), InfoNCE_mask.long().tolist()
 
     def __len__(self):
         return len(self.img_path_pairs)
