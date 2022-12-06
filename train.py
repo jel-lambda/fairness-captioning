@@ -58,9 +58,9 @@ def main(args):
     scheduler = optim.lr_scheduler.StepLR(optimizer, args.step_size)
     cross_entropy_loss_train = nn.CrossEntropyLoss(ignore_index=train_dataset.pad_idx).cuda()
     cross_entropy_loss_val = nn.CrossEntropyLoss(ignore_index=val_dataset.pad_idx).cuda()
-    infoNCE = eval("InfoNCE")(encoder.dim,encoder.dim,args.estimator_hidden_size).cuda()
+    infoNCE = eval("InfoNCE")(512,512,args.estimator_hidden_size).cuda()
     optimizer_nce = optim.Adam(infoNCE.parameters(), lr=args.lr)
-    club = eval("CLUB")(encoder.dim,encoder.dim,args.estimator_hidden_size).cuda()
+    club = eval("CLUB")(512,512,args.estimator_hidden_size).cuda()
     optimizer_club = optim.Adam(club.parameters(), lr=args.lr)
     
     train_loader = DataLoader(train_dataset, shuffle=True, batch_size=args.batch_size, collate_fn=train_dataset.collate_fn)
@@ -94,7 +94,6 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
     top5 = AverageMeter()
 
     for batch_idx, ((img1, cap1), (img2, cap2), club_mask, nce_mask) in enumerate(data_loader):
-        break
         img1 = Variable(img1.cuda())
         cap1 = Variable(cap1.cuda())
         img2 = Variable(img2.cuda())
@@ -128,7 +127,6 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         total_caption_length = calculate_caption_lengths(word_dict, cap1)
         ce_loss = cross_entropy_loss( preds1.view(-1, preds1.size(-1)), targets1.view(-1))\
             + cross_entropy_loss(preds2.view(-1, preds2.size(-1)), targets2.view(-1))
-        
         club_loss = club(features1, features2, club_mask)
         infonce_loss = infoNCE(features1, features2, nce_mask)
 

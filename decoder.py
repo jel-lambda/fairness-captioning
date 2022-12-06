@@ -23,7 +23,7 @@ class Decoder(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
         self.filter = nn.Sequential(
-            nn.Linear(encoder_dim, 512),
+            nn.Linear(512, 512),
             nn.ReLU(),
             nn.Linear(512, 512),
             nn.ReLU(),
