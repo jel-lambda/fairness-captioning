@@ -23,12 +23,15 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def accuracy(preds, targets, k):
+def accuracy(preds, targets, target_lens, k):
     batch_size = targets.size(0)
     _, pred = preds.topk(k, 2, True, True)
     correct = pred.view(-1,k).eq(targets.view(-1,1).expand_as(pred.view(-1,k)))
-    correct_total = correct.view(-1).float().sum()
-    return correct_total.item() * (100.0 / batch_size)
+    correct_total = correct.view(batch_size, targets.size(1), k)
+    correct_sum = 0
+    for correct, target_len in zip(correct_total, target_lens):
+        correct_sum += correct[:target_len].float().sum()
+    return correct_sum * (100.0 / target_lens.sum())
 
 
 def calculate_caption_lengths(word_dict, captions):

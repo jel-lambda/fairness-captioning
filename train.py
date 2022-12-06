@@ -71,7 +71,7 @@ def main(args):
         scheduler.step()
 
         train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cross_entropy_loss_train, infoNCE, club,
-              train_loader, word_dict, args.log_interval, writer, args.batch_size)
+              train_loader, word_dict, args.log_interval, writer)
         validate(epoch, encoder, decoder, cross_entropy_loss_val, val_loader,
                 infoNCE, club, word_dict, args.alpha_c, args.log_interval, writer)
         if not os.path.exists('model/'):
@@ -83,7 +83,7 @@ def main(args):
 
 
 
-def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cross_entropy_loss, infoNCE, club, data_loader, word_dict, log_interval, writer, batch_size):
+def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cross_entropy_loss, infoNCE, club, data_loader, word_dict, log_interval, writer):
     encoder.eval()
     decoder.train()
 
@@ -94,7 +94,7 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
     top5 = AverageMeter()
 
     for batch_idx, ((img1, cap1), (img2, cap2), club_mask, nce_mask) in enumerate(data_loader):
-
+        break
         img1 = Variable(img1.cuda())
         cap1 = Variable(cap1.cuda())
         img2 = Variable(img2.cuda())
@@ -106,6 +106,10 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         targets2 = cap2[:, 1:].clone()
         club_mask = club_mask[:, 1:].clone()
         nce_mask = nce_mask[:, 1:].clone()
+
+        pad_idx = word_dict['<pad>']
+        target_lens1 = (targets1.clone().detach().long()!=pad_idx).sum(dim=1)
+        target_lens2 = (targets2.clone().detach().long()!=pad_idx).sum(dim=1)
 
         '''
         === Forward and backward paths for updating filter weights ===
@@ -166,10 +170,10 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         === Calculate accuracy ===
         '''
 
-        acc1_1 = accuracy(preds1, targets1, 1)
-        acc1_5 = accuracy(preds1, targets1, 5)
-        acc2_1 = accuracy(preds2, targets2, 1)
-        acc2_5 = accuracy(preds2, targets2, 5)
+        acc1_1 = accuracy(preds1, targets1, target_lens1, 1)
+        acc1_5 = accuracy(preds1, targets1, target_lens1, 5)
+        acc2_1 = accuracy(preds2, targets2, target_lens2, 1)
+        acc2_5 = accuracy(preds2, targets2, target_lens2, 5)
 
         infonce_losses.update(infonce_loss.item(), total_caption_length)
         club_losses.update(club_loss.item(), total_caption_length)
@@ -209,6 +213,7 @@ def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, infoNCE_l
     hypotheses2 = []
     with torch.no_grad():
         for batch_idx, ((img1, cap1, all_cap1), (img2, cap2, all_cap2), club_mask, nce_mask) in enumerate(data_loader):
+            
             img1 = Variable(img1.cuda())
             cap1 = Variable(cap1.cuda())
             img2 = Variable(img2.cuda())
@@ -226,6 +231,11 @@ def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, infoNCE_l
             club_mask = club_mask[:, 1:]
             nce_mask = nce_mask[:, 1:]
 
+            
+            pad_idx = word_dict['<pad>']
+            target_lens1 = (targets1.clone().detach().long()!=pad_idx).sum(dim=1)
+            target_lens2 = (targets2.clone().detach().long()!=pad_idx).sum(dim=1)
+
             total_caption_length = calculate_caption_lengths(word_dict, cap1)
 
             c_loss = club_loss(features1, features2, nce_mask)
@@ -235,10 +245,10 @@ def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, infoNCE_l
 
             loss = (ce_loss + infonce_loss + c_loss)/total_caption_length
 
-            acc1_1 = accuracy(preds1, targets1, 1)
-            acc1_5 = accuracy(preds1, targets1, 5)
-            acc2_1 = accuracy(preds2, targets2, 1)
-            acc2_5 = accuracy(preds2, targets2, 5)
+            acc1_1 = accuracy(preds1, targets1, target_lens1, 1)
+            acc1_5 = accuracy(preds1, targets1, target_lens1, 5)
+            acc2_1 = accuracy(preds2, targets2, target_lens2, 1)
+            acc2_5 = accuracy(preds2, targets2, target_lens2, 5)
 
             losses.update(loss.item() , total_caption_length)
             top1.update((acc1_1 + acc2_1)/2, total_caption_length)
