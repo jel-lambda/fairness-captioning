@@ -91,10 +91,11 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
     top1 = AverageMeter()
     top5 = AverageMeter()
 
-    torch.autograd.set_detect_anomaly(True)
-
     for batch_idx, ((img1, cap1), (img2, cap2), club_mask, nce_mask) in enumerate(data_loader):
         
+        if batch_idx == 0:
+            break
+
         img1 = Variable(img1.cuda())
         cap1 = Variable(cap1.cuda())
         img2 = Variable(img2.cuda())
@@ -108,7 +109,7 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         nce_mask = nce_mask[:, 1:].clone()
 
         '''
-        === Forward for updating filter ===
+        === Forward and backward paths for updating filter weights ===
         '''
 
         img1_features = encoder(img1)
@@ -117,21 +118,13 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         preds1, _, features1 = decoder(img1_features, cap1)
         preds2, _, features2 = decoder(img2_features, cap2)
 
-        # club_feat1 = features1 * club_mask.unsqueeze(2)
-        # club_feat2 = features2 * club_mask.unsqueeze(2)
-        # nce_feat1 = features1 * nce_mask.unsqueeze(2)
-        # nce_feat2 = features2 * nce_mask.unsqueeze(2)
-
-        # num_negative = cls_mask.sum(1).max().item()
-        decoder.train()
+        decoder.filter.train()
         club.eval()
         infoNCE.eval()
 
         total_caption_length = calculate_caption_lengths(word_dict, cap1)
-        _preds1, _targets1 = preds1.clone().view(-1, preds1.size(-1)), targets1.view(-1)
-        _preds2, _targets2 = preds2.clone().view(-1, preds2.size(-1)), targets2.view(-1)
-        ce_loss = cross_entropy_loss(_preds1, _targets1)\
-            + cross_entropy_loss(_preds2, _targets2)
+        ce_loss = cross_entropy_loss( preds1.view(-1, preds1.size(-1)), targets1.view(-1))\
+            + cross_entropy_loss(preds2.view(-1, preds2.size(-1)), targets2.view(-1))
         
         club_loss = club(features1, features2, club_mask)
         infonce_loss = infoNCE(features1, features2, nce_mask)
@@ -139,12 +132,12 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         loss = (ce_loss + infonce_loss + club_loss) / total_caption_length
 
         optimizer.zero_grad()
-        loss.backward(retain_graph=True)
+        loss.backward()
         optimizer.step()
 
 
         """
-        === Forward for updating estimators ===
+        === Forward and backward paths for updating estimators weights ===
         """
 
         img1_features = encoder(img1)
@@ -169,6 +162,10 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         infonce_learning_loss.backward(retain_graph=True)
         optimizer_nce.step()
 
+        
+        '''
+        === Calculate accuracy ===
+        '''
 
         acc1_1 = accuracy(preds1, targets1, 1)
         acc1_5 = accuracy(preds1, targets1, 5)
@@ -213,9 +210,8 @@ def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, infoNCE_l
     hypotheses2 = []
     with torch.no_grad():
         for batch_idx, ((img1, cap1, all_cap1), (img2, cap2, all_cap2), club_mask, nce_mask) in enumerate(data_loader):
-            print(img1.shape)
-            print('captions', all_cap2)
-
+            if batch_idx == 1:
+                break
             img1 = Variable(img1.cuda())
             cap1 = Variable(cap1.cuda())
             img2 = Variable(img2.cuda())
@@ -228,8 +224,12 @@ def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, infoNCE_l
             
             preds1, _, features1 = decoder(img1_features, cap1)
             preds2, _, features2 = decoder(img2_features, cap2)
-            targets1 = cap1[:, 1:]
-            targets2 = cap2[:, 1:]
+            targets1 = cap1[:, 1:].contiguous()
+            targets2 = cap2[:, 1:].contiguous()
+            club_mask = club_mask[:, 1:]
+            nce_mask = nce_mask[:, 1:]
+
+            total_caption_length = calculate_caption_lengths(word_dict, cap1)
 
             c_loss = club_loss(features1, features2, nce_mask)
             infonce_loss = infoNCE_loss(features1, features2, nce_mask)
@@ -237,8 +237,6 @@ def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, infoNCE_l
                  + cross_entropy_loss(preds2.view(-1, preds2.size(-1)), targets2.view(-1))
 
             loss = (ce_loss + infonce_loss + c_loss)/total_caption_length
-
-            total_caption_length = calculate_caption_lengths(word_dict, cap1)
 
             acc1_1 = accuracy(preds1, targets1, 1)
             acc1_5 = accuracy(preds1, targets1, 5)
