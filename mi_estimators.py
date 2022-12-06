@@ -88,7 +88,7 @@ class CLUB(nn.Module):  # CLUB: Mutual Information Contrastive Learning Upper Bo
         logvar = self.p_logvar(x_samples)
         return mu, logvar
     
-    def forward(self, x_samples, y_samples): 
+    def forward(self, x_samples, y_samples, mask): 
         mu, logvar = self.get_mu_logvar(x_samples)
         
         # log of conditional probability of positive sample pairs
@@ -100,14 +100,24 @@ class CLUB(nn.Module):  # CLUB: Mutual Information Contrastive Learning Upper Bo
         # log of conditional probability of negative sample pairs
         negative = - ((y_samples_1 - prediction_1)**2).mean(dim=1)/2./logvar.exp() 
 
+        # mask the timestep
+        positive = positive * mask.clone().unsqueeze(2)
+        negative = negative * mask.clone().unsqueeze(2)
+
         return (positive.sum(dim = -1) - negative.sum(dim = -1)).mean()
 
-    def loglikeli(self, x_samples, y_samples): # unnormalized loglikelihood 
+    def loglikeli(self, x_samples, y_samples, mask): # unnormalized loglikelihood 
         mu, logvar = self.get_mu_logvar(x_samples)
-        return (-(mu - y_samples)**2 /logvar.exp()-logvar).sum(dim=1).mean(dim=0)
+
+        # mask the timestep
+        mu = mu * mask.clone().unsqueeze(2)
+        y_samples = y_samples * mask.clone().unsqueeze(2)
+        logvar = logvar * mask.clone().unsqueeze(2)
+
+        return (-(mu - y_samples)**2 /logvar.exp()-logvar).sum(dim=1).mean(dim=0).mean(dim=0)
     
-    def learning_loss(self, x_samples, y_samples):
-        return - self.loglikeli(x_samples, y_samples)
+    def learning_loss(self, x_samples, y_samples, mask):
+        return - self.loglikeli(x_samples, y_samples, mask)
    
 
 class CLUBMean(nn.Module):  # Set variance of q(y|x) to 1, logvar = 0. Update 11/26/2022
@@ -254,21 +264,26 @@ class InfoNCE(nn.Module):
                                     nn.Linear(hidden_size, 1),
                                     nn.Softplus())
     
-    def forward(self, x_samples, y_samples):  # samples have shape [sample_size, dim]
+    def forward(self, x_samples, y_samples, mask):  # samples have shape [batch_size, sample_size, dim]
+        
         # shuffle and concatenate
-        sample_size = y_samples.shape[0]
-
-        x_tile = x_samples.unsqueeze(0).repeat((sample_size, 1, 1))
-        y_tile = y_samples.unsqueeze(1).repeat((1, sample_size, 1))
+        sample_size = y_samples.shape[1]
+        x_tile = x_samples.unsqueeze(1).repeat((1,sample_size, 1, 1))
+        y_tile = y_samples.unsqueeze(2).repeat((1, 1, sample_size, 1))
 
         T0 = self.F_func(torch.cat([x_samples,y_samples], dim = -1))
-        T1 = self.F_func(torch.cat([x_tile, y_tile], dim = -1))  #[sample_size, sample_size, 1]
+        T1 = self.F_func(torch.cat([x_tile, y_tile], dim = -1))  #[batch_size, sample_size, sample_size, 1]
+
+        # mask the timestep
+        T0 = T0.clone() * mask.unsqueeze(-1)
+        T1 = T1.clone() * mask.unsqueeze(-1).unsqueeze(-1)
 
         lower_bound = T0.mean() - (T1.logsumexp(dim = 1).mean() - np.log(sample_size)) 
+
         return lower_bound
 
-    def learning_loss(self, x_samples, y_samples):
-        return -self.forward(x_samples, y_samples)
+    def learning_loss(self, x_samples, y_samples, mask):
+        return -self.forward(x_samples, y_samples, mask).clone()
 
 
 
