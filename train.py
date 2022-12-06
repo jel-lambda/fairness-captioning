@@ -94,6 +94,7 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
     top5 = AverageMeter()
 
     for batch_idx, ((img1, cap1), (img2, cap2), club_mask, nce_mask) in enumerate(data_loader):
+        
         img1 = Variable(img1.cuda())
         cap1 = Variable(cap1.cuda())
         img2 = Variable(img2.cuda())
@@ -231,8 +232,8 @@ def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, infoNCE_l
 
             
             pad_idx = word_dict['<pad>']
-            target_lens1 = (targets1.clone().detach().long()!=pad_idx).sum(dim=1)
-            target_lens2 = (targets2.clone().detach().long()!=pad_idx).sum(dim=1)
+            target_lens1 = (cap1.clone().detach().long()!=pad_idx).sum(dim=1)
+            target_lens2 = (cap2.clone().detach().long()!=pad_idx).sum(dim=1)
 
             total_caption_length = calculate_caption_lengths(word_dict, cap1)
 
