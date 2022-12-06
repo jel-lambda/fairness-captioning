@@ -2,7 +2,7 @@
 Original code from https://github.com/AaronCCWong/Show-Attend-and-Tell
 '''
 
-import argparse, json
+import argparse, json, os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -74,6 +74,8 @@ def main(args):
               train_loader, word_dict, args.log_interval, writer, args.batch_size)
         validate(epoch, encoder, decoder, cross_entropy_loss_val, val_loader,
                 infoNCE, club, word_dict, args.alpha_c, args.log_interval, writer)
+        if not os.path.exists('model/'):
+            os.makedirs('model/')
         model_file = 'model/model_' + args.network + '_' + str(epoch) + '.pth'
         torch.save(decoder.state_dict(), model_file)
         print('Saved model to ' + model_file)
@@ -92,9 +94,6 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
     top5 = AverageMeter()
 
     for batch_idx, ((img1, cap1), (img2, cap2), club_mask, nce_mask) in enumerate(data_loader):
-        
-        if batch_idx == 0:
-            break
 
         img1 = Variable(img1.cuda())
         cap1 = Variable(cap1.cuda())
@@ -210,8 +209,6 @@ def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, infoNCE_l
     hypotheses2 = []
     with torch.no_grad():
         for batch_idx, ((img1, cap1, all_cap1), (img2, cap2, all_cap2), club_mask, nce_mask) in enumerate(data_loader):
-            if batch_idx == 1:
-                break
             img1 = Variable(img1.cuda())
             cap1 = Variable(cap1.cuda())
             img2 = Variable(img2.cuda())
