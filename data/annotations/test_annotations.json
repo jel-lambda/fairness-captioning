@@ -1,0 +1,788 @@
+[
+    {
+        "COCO_val2014_000000018982.png": [
+            {
+                "caption": "a man standing <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man talks on a phone <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man holding a cell phone standing <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man on a cell phone <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man holding a phone to the ear <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000150117.png": [
+            {
+                "caption": "a man that is holding a camera in both of hands <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man in a tshirt smiles preparing to take a photograph <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man <cls> is holding a camera",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man <cls> smiling while holding up a camera",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "the man is smiling while looking at upheld camera <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000092028.png": [
+            {
+                "caption": "a man well dressed posing at the photo <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a person wearing a black suit jacket collared shirt blue patterned tie and a pocket square <cls>",
+                "target_word_idx": 1,
+                "target_word": "person",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a well dressed man posing with a serious face <cls>",
+                "target_word_idx": 3,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man wearing a suite with a serious look on face <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "the upper half of a man posing and wearing a suit with a blue tie and matching pocket corner <cls>",
+                "target_word_idx": 5,
+                "target_word": "man",
+                "cropping_info": "center"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000012748.png": [
+            {
+                "caption": "a man and child <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "right"
+            },
+            {
+                "caption": "a man holding a baby <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "right"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000034234.png": [
+            {
+                "caption": "a man is standing with a skateboard in hand <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a man standing holding a skateboard vertical in one hand <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a man standing <cls> holding a skateboard",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a man with a hat on backwards stands with a skateboard <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a man is standing <cls> with a skateboard",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "none"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000204767.png": [
+            {
+                "caption": "a man wearing sun glasses is wearing a suit and tie and holding two things in hands <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man in a suit and tie is posing for the camera <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man is a dark suit wearing sunglasses <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man in a suit and tie holding some pins <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man in suit and tie holding onto two blue cups <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000000395.png": [
+            {
+                "caption": "a man talking on a phone <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man using a cell phone <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man in a crown wears a red jacket and is on the phone <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man standing <cls> while talking on a cellphone",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a man with a white beard and hat on a cellphone <cls>",
+                "target_word_idx": 1,
+                "target_word": "man",
+                "cropping_info": "center"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000001296.png": [
+            {
+                "caption": "a woman holding a hello kitty phone <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "right"
+            },
+            {
+                "caption": "a woman holds up a phone in front of the face <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "right"
+            },
+            {
+                "caption": "a woman in white shirt holding up a cellphone <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "right"
+            },
+            {
+                "caption": "a woman checking a cell phone with a hello kitty case <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "right"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000222118.png": [
+            {
+                "caption": "a woman talking on a cell phone while holding luggage <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a woman on a cell phone with a bag <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a woman is standing <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a woman holding a purse and a cellphone <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "woman talking on cell phone <cls>",
+                "target_word_idx": 0,
+                "target_word": "woman",
+                "cropping_info": "center"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000003964.png": [
+            {
+                "caption": "a woman holding a tennis racquet while wearing a straw hat <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a woman wearing a mask holding a racquet <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "the person wearing a mask is holding a tennis racket <cls>",
+                "target_word_idx": 1,
+                "target_word": "person",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a woman wearing a mask standing and holding a tennis racket <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a woman in a bamboo hat holding a tennis racquet <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "none"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000042091.png": [
+            {
+                "caption": "a woman in sunglasses and hat standing <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "left"
+            },
+            {
+                "caption": "the woman is posing for a photograph <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "left"
+            },
+            {
+                "caption": "a happy woman wearing sunglasses and a wide brimmed white hat <cls>",
+                "target_word_idx": 2,
+                "target_word": "woman",
+                "cropping_info": "left"
+            },
+            {
+                "caption": "a smiling woman standing <cls>",
+                "target_word_idx": 2,
+                "target_word": "woman",
+                "cropping_info": "left"
+            },
+            {
+                "caption": "a woman wearing a white hat and sunglasses <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "left"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000120783.png": [
+            {
+                "caption": "a woman is holding a bowl made of bananas on head <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "an older woman holding some bananas on a plate <cls>",
+                "target_word_idx": 2,
+                "target_word": "woman",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a woman holds a bowl with bananas on head <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a smiling woman holding a bowl made out of fake bananas on head <cls>",
+                "target_word_idx": 2,
+                "target_word": "woman",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a woman is holding a crown of bananas on head <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "center"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000132652.png": [
+            {
+                "caption": "there is a woman talking on the phone <cls>",
+                "target_word_idx": 3,
+                "target_word": "woman",
+                "cropping_info": "left"
+            },
+            {
+                "caption": "a close up of a person talking on a cell phone <cls>",
+                "target_word_idx": 5,
+                "target_word": "person",
+                "cropping_info": "left"
+            },
+            {
+                "caption": "a woman is smiling and talking on a cellphone <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "left"
+            },
+            {
+                "caption": "a woman in a red shirt is talking on cellphone <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "left"
+            },
+            {
+                "caption": "a smiling woman is using a cellphone <cls>",
+                "target_word_idx": 2,
+                "target_word": "woman",
+                "cropping_info": "left"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000125983.png": [
+            {
+                "caption": "a woman dancing <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a woman standing in a dance pose <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a woman posing <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a woman doing a pose <cls>",
+                "target_word_idx": 1,
+                "target_word": "woman",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "woman standing <cls>",
+                "target_word_idx": 0,
+                "target_word": "woman",
+                "cropping_info": "none"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000126340.png": [
+            {
+                "caption": "a young boy with a bowl haircut holding a nintendo wii controller <cls>",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a young boy standing <cls> with a video game controller",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a little boy standing <cls> holding a wii remote tight",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a young boy holding a white game controller <cls>",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a young boy who is holding a video game controller <cls>",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "center"
+            }
+        ]
+    },
+    {
+        "COCO_train2014_000000097406.png": [
+            {
+                "caption": "a boy playing little league ball with a glove on a hand <cls>",
+                "target_word_idx": 1,
+                "target_word": "boy",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a boy is standing <cls> holding a baseball glove",
+                "target_word_idx": 1,
+                "target_word": "boy",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a young boy in a blue baseball shirt is holding a mitt <cls>",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "the boy in a blue shirt is holding up a glove <cls>",
+                "target_word_idx": 1,
+                "target_word": "boy",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a little boy that is standing <cls> with a glove",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "none"
+            }
+        ]
+    },
+    {
+        "COCO_train2014_000000031157.png": [
+            {
+                "caption": "a young boy eating a pink sprinkle covered donut <cls>",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a young boy bites into a doughnut with sprinkles <cls>",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a young boy eats a doughnut top with heartshaped candies <cls>",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a blonde boy in glasses is eating a doughnut <cls>",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a boy eating a dessert item with sprinkles in ones teeth <cls>",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "center"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000050638.png": [
+            {
+                "caption": "a boy carries a stuffed animal <cls>",
+                "target_word_idx": 1,
+                "target_word": "boy",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a small boy walking <cls> and carrying a teddy bear",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a young boy walking <cls> with a teddy bear",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a little boy holding a teddy bear walking <cls>",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "this little boy is walking <cls> while hold a stuffed animal toy",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "none"
+            }
+        ]
+    },
+    {
+        "COCO_train2014_000000575675.png": [
+            {
+                "caption": "a little boy standing <cls> with ones hand in a pocket",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a young boy in a neck tie poses for a photograph <cls>",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a young boy wearing a tie stands <cls>",
+                "target_word_idx": 2,
+                "target_word": "boy",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a boy in a shirt and tie <cls>",
+                "target_word_idx": 1,
+                "target_word": "boy",
+                "cropping_info": "none"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000230245.png": [
+            {
+                "caption": "a freckled girl eating a cookie <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a young girl in pink eating a cookie <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a young girl in a pink shirt holding a cookie <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "young girl in pink eating some sort of food <cls>",
+                "target_word_idx": 1,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a smiling girl with a piece of bread in hand <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000029059.png": [
+            {
+                "caption": "a little girl is holding a large loaf of bread <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "an adorable little girl holding a sandwich <cls>",
+                "target_word_idx": 3,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a small girl eats a sandwich <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a young girl is eating a large sandwich <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "this little girl is <cls> and eating the favorite dessert",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            }
+        ]
+    },
+    {
+        "COCO_val2014_000000027186.png": [
+            {
+                "caption": "a little girl <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "the little girl <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a small girl <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a little girl standing <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a little young girl <cls>",
+                "target_word_idx": 3,
+                "target_word": "girl",
+                "cropping_info": "center"
+            }
+        ]
+    },
+    {
+        "COCO_train2014_000000075624.png": [
+            {
+                "caption": "a little girl holding a remote <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "young girl sitting <cls> playing with remoter game control",
+                "target_word_idx": 1,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "the little girl is playing a video game <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a girl <cls> with a play remote control in hands",
+                "target_word_idx": 1,
+                "target_word": "girl",
+                "cropping_info": "center"
+            },
+            {
+                "caption": "a little girl that is holding a remote control <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "center"
+            }
+        ]
+    },
+    {
+        "COCO_train2014_000000233143.png": [
+            {
+                "caption": "a little girl sitting <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a little girl sits <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a little girl sitting <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a small girl sits <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "none"
+            },
+            {
+                "caption": "a small girl playing <cls>",
+                "target_word_idx": 2,
+                "target_word": "girl",
+                "cropping_info": "none"
+            }
+        ]
+    }
+]

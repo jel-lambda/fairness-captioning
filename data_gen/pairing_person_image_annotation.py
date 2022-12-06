@@ -4,7 +4,7 @@ import string
 from collections import Counter, defaultdict
 
 import random
-random.seed(1029)
+random.seed(0)
 
 import argparse
 
@@ -168,6 +168,8 @@ def main():
         new_annot = []
         for annot in person_image_annotation[image]:
             if annot['target_word'] == person_info:
+                new_annot.append(annot)
+            if annot['target_word'] == 'person' and person_info in ['man', 'woman']:
                 new_annot.append(annot)
         
         person_image_annotation[image] = new_annot
