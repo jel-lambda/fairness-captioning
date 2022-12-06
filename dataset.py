@@ -116,7 +116,7 @@ class ImagePairedCaptionDataset(Dataset):
                    (torch.FloatTensor(img2), caption2),\
                    CLUB_mask.long().tolist(), InfoNCE_mask.long().tolist()
 
-        elif self.split_type == 'val':
+        elif self.split_type in ['val', 'test']:
             all_captions1 = [ [self.word2idx['<sos>']] + [self.word2idx[word] for word in caption.split(' ')] + [self.word2idx['<eos>']]
                             for caption in self.image2captions[img_path1]]
             all_captions2 = [ [self.word2idx['<sos>']] + [self.word2idx[word] for word in caption.split(' ')] + [self.word2idx['<eos>']]
@@ -137,7 +137,7 @@ class ImagePairedCaptionDataset(Dataset):
             img2s, caption2s = zip(*img_cap_2s)
             max_caption_len = max( max([len(caption1) for caption1 in caption1s]), max([len(caption2) for caption2 in caption2s]) )
 
-        elif self.split_type == 'val':
+        elif self.split_type in ['val', 'test']:
             img_cap_1s, img_cap_2s, target_word_masks, cls_template_masks = zip(*data)
             img1s, caption1s, all_captions1s = zip(*img_cap_1s)
             img2s, caption2s, all_captions2s = zip(*img_cap_2s)
@@ -155,7 +155,7 @@ class ImagePairedCaptionDataset(Dataset):
                    ( torch.stack(img2s), torch.LongTensor(caption2s) ),\
                    torch.LongTensor(target_word_masks), torch.LongTensor(cls_template_masks)
 
-        elif self.split_type == 'val':
+        elif self.split_type in ['val', 'test']:
             all_captions1s = [ [caption + [self.pad_idx] * (max_caption_len - len(caption)) for caption in all_captions1]
                             for all_captions1 in all_captions1s ]
             all_captions2s = [ [caption + [self.pad_idx] * (max_caption_len - len(caption)) for caption in all_captions2]
