@@ -8,7 +8,7 @@ from attention import Attention
 
 
 class Decoder(nn.Module):
-    def __init__(self, vocabulary_size, encoder_dim, tf=False):
+    def __init__(self, vocabulary_size, encoder_dim, tf=False, use_filter=True):
         super(Decoder, self).__init__()
         self.use_tf = tf
 
@@ -22,14 +22,16 @@ class Decoder(nn.Module):
         self.f_beta = nn.Linear(512, encoder_dim)
         self.sigmoid = nn.Sigmoid()
 
-        self.filter = nn.Sequential(
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU()
-        )
+        self.use_filter = use_filter
+        if use_filter:
+            self.filter = nn.Sequential(
+                nn.Linear(512, 512),
+                nn.ReLU(),
+                nn.Linear(512, 512),
+                nn.ReLU(),
+                nn.Linear(512, 512),
+                nn.ReLU()
+            )
 
         self.deep_output = nn.Linear(512, vocabulary_size)
         self.dropout = nn.Dropout()
@@ -76,7 +78,10 @@ class Decoder(nn.Module):
                 lstm_input = torch.cat((embedding, gated_context), dim=1)
 
             h, c = self.lstm(lstm_input, (h, c))
-            feature = self.filter(h)
+            if self.use_filter:
+                feature = self.filter(h)
+            else:
+                feature = h
             output = self.deep_output(self.dropout(feature))
 
             preds[:, t] = output
