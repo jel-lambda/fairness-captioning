@@ -94,7 +94,9 @@ if __name__ == "__main__":
     parser.add_argument('--img-path', type=str, help='path to image', default='./data/backgrounds/bathroom/bathroom_0.jpg')
     parser.add_argument('--network', choices=['vgg19', 'resnet152'], default='vgg19',
                         help='Network to use in the encoder (default: vgg19)')
-    parser.add_argument('--model', type=str, help='path to model paramters', default='./model_10.pth', default='data/pretrained/VGG19_decoder.pth')
+    parser.add_argument('--use_filter', action='store_true', default=False,
+                        help='whether to use filter layer in decoder')
+    parser.add_argument('--model', type=str, help='path to model paramters', default='./model_10.pth') #default='data/pretrained/VGG19_decoder.pth')
     parser.add_argument('--data-path', type=str, default='data/coco',
                         help='path to data (default: data/coco)')
     parser.add_argument('--output-img-path', type=str, help='path to attention output image')
@@ -104,9 +106,12 @@ if __name__ == "__main__":
     vocabulary_size = len(word_dict)
 
     encoder = Encoder(network=args.network)
-    decoder = Decoder(vocabulary_size, encoder.dim)
+    decoder = Decoder(vocabulary_size, encoder.dim, use_filter=args.use_filter)
 
-    decoder.load_state_dict(torch.load(args.model))
+    decoder_dict = decoder.state_dict()
+    for k, v in torch.load(args.model).items():
+        decoder_dict[k] = v
+    decoder.load_state_dict(decoder_dict)
 
     # encoder.cuda()
     # decoder.cuda()
