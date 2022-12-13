@@ -8,7 +8,7 @@ from attention import Attention
 
 
 class Decoder(nn.Module):
-    def __init__(self, vocabulary_size, encoder_dim, tf=False, use_filter=True):
+    def __init__(self, vocabulary_size, encoder_dim, tf=True, use_filter=False):
         super(Decoder, self).__init__()
         self.use_tf = tf
 
@@ -43,8 +43,9 @@ class Decoder(nn.Module):
     def freeze_pretrained(self):
         for param in self.parameters():
             param.requires_grad = False
-        for param in self.filter.parameters():
-            param.requires_grad = True
+        if self.use_filter:
+            for param in self.filter.parameters():
+                param.requires_grad = True
 
     def forward(self, img_features, captions):
         """

@@ -38,7 +38,7 @@ def main(args):
     vocabulary_size = len(word_dict)
     
     encoder = Encoder(args.network)
-    decoder = Decoder(vocabulary_size, encoder.dim, args.tf)
+    decoder = Decoder(vocabulary_size, encoder.dim, args.tf, args.use_filter)
 
     if args.model:
         print(f'Load pretrained weights for decoder from {args.model}')
@@ -53,8 +53,14 @@ def main(args):
 
     train_dataset = ImagePairedCaptionDataset(transform=data_transforms, images_dir='./data/final/', annotations_dir='./data/annotations/', word_dict=word_dict, split_type='train')
     val_dataset = ImagePairedCaptionDataset(transform=data_transforms, images_dir='./data/final/', annotations_dir='./data/annotations/', word_dict=word_dict, split_type='val')
-
-    optimizer = optim.Adam(decoder.filter.parameters(), lr=args.lr)
+    if args.use_filter:
+        optimizer = optim.Adam(decoder.filter.parameters(), lr=args.lr)
+    elif args.encoder_training and args.decoder_training:
+        optimizer = optim.Adam(list(encoder.parameters()) + list(decoder.parameters()), lr=args.lr)
+    elif args.decoder_training:
+        optimizer = optim.Adam(decoder.parameters(), lr=args.lr)
+    elif args.encoder_training:
+        optimizer = optim.Adam(encoder.parameters(), lr=args.lr)
     scheduler = optim.lr_scheduler.StepLR(optimizer, args.step_size)
     cross_entropy_loss_train = nn.CrossEntropyLoss(ignore_index=train_dataset.pad_idx).cuda()
     cross_entropy_loss_val = nn.CrossEntropyLoss(ignore_index=val_dataset.pad_idx).cuda()
@@ -71,7 +77,7 @@ def main(args):
         scheduler.step()
 
         train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cross_entropy_loss_train, infoNCE, club,
-              train_loader, word_dict, args.log_interval, writer)
+              train_loader, word_dict, args.log_interval, writer, args)
         if not os.path.exists('model/'):
             os.makedirs('model/')
         model_file = 'model/model_' + args.network + '_' + str(epoch) + '.pth'
@@ -84,9 +90,15 @@ def main(args):
 
 
 
-def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cross_entropy_loss, infoNCE, club, data_loader, word_dict, log_interval, writer):
-    encoder.eval()
-    decoder.train()
+def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cross_entropy_loss, infoNCE, club, data_loader, word_dict, log_interval, writer, args):
+    if args.encoder_training:
+        encoder.train()
+    else:
+        encoder.eval()
+    if args.decoder_training:
+        decoder.train()
+    else:
+        decoder.eval()
 
     infonce_losses = AverageMeter()
     club_losses = AverageMeter()
@@ -122,22 +134,26 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         preds1, _, features1 = decoder(img1_features, cap1)
         preds2, _, features2 = decoder(img2_features, cap2)
 
-        decoder.filter.train()
-        club.eval()
-        infoNCE.eval()
-
         total_caption_length = calculate_caption_lengths(word_dict, cap1)
         ce_loss = cross_entropy_loss( preds1.view(-1, preds1.size(-1)), targets1.view(-1))\
             + cross_entropy_loss(preds2.view(-1, preds2.size(-1)), targets2.view(-1))
-        club_loss = club(features1, features2, club_mask)
-        infonce_loss = infoNCE(features1, features2, nce_mask)
 
-        loss = (ce_loss + infonce_loss + club_loss) / total_caption_length
+        if args.use_filter:
+            decoder.filter.train()
+
+            club.eval()
+            infoNCE.eval()
+
+            club_loss = club(features1, features2, club_mask)
+            infonce_loss = infoNCE(features1, features2, nce_mask)
+
+            loss = (ce_loss + infonce_loss + club_loss) / total_caption_length
+        else:
+            loss = ce_loss / total_caption_length
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
 
         """
         === Forward and backward paths for updating estimators weights ===
@@ -150,21 +166,22 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         preds2, _, features2 = decoder(img2_features, cap2)
 
         decoder.eval()
-        club.train()
-        infoNCE.train()
+
+        if args.use_filter:
+            club.train()
+            infoNCE.train()
         
-        club_learning_loss = club.learning_loss(features1, features2, club_mask)
+            club_learning_loss = club.learning_loss(features1, features2, club_mask)
         
-        optimizer_club.zero_grad()
-        club_learning_loss.backward(retain_graph=True)
-        optimizer_club.step()
+            optimizer_club.zero_grad()
+            club_learning_loss.backward(retain_graph=True)
+            optimizer_club.step()
 
-        infonce_learning_loss = infoNCE.learning_loss(features1, features2, nce_mask)
+            infonce_learning_loss = infoNCE.learning_loss(features1, features2, nce_mask)
 
-        optimizer_nce.zero_grad()
-        infonce_learning_loss.backward(retain_graph=True)
-        optimizer_nce.step()
-
+            optimizer_nce.zero_grad()
+            infonce_learning_loss.backward(retain_graph=True)
+            optimizer_nce.step()
         
         '''
         === Calculate accuracy ===
@@ -174,9 +191,10 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
         acc1_5 = accuracy(preds1, targets1, target_lens1, 5)
         acc2_1 = accuracy(preds2, targets2, target_lens2, 1)
         acc2_5 = accuracy(preds2, targets2, target_lens2, 5)
-
-        infonce_losses.update(infonce_loss.item(), total_caption_length)
-        club_losses.update(club_loss.item(), total_caption_length)
+        
+        if args.use_filter:
+            infonce_losses.update(infonce_loss.item(), total_caption_length)
+            club_losses.update(club_loss.item(), total_caption_length)
         losses.update(loss.item() , total_caption_length)
         top1.update((acc1_1 + acc2_1)/(2*total_caption_length), total_caption_length)
         top5.update((acc1_5 + acc2_5)/(2*total_caption_length), total_caption_length)
@@ -187,8 +205,10 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
                   'Top 1 Accuracy {top1.val:.3f} ({top1.avg:.3f})\t'
                   'Top 5 Accuracy {top5.val:.3f} ({top5.avg:.3f})'.format(
                       batch_idx, len(data_loader), loss=losses, top1=top1, top5=top5))
-    writer.add_scalar('infoNCE', infonce_losses.avg, epoch)
-    writer.add_scalar('club_loss', club_losses.avg, epoch)
+
+    if args.use_filter:
+        writer.add_scalar('infoNCE', infonce_losses.avg, epoch)
+        writer.add_scalar('club_loss', club_losses.avg, epoch)
     writer.add_scalar('train_loss', losses.avg, epoch)
     writer.add_scalar('train_top1_acc', top1.avg, epoch)
     writer.add_scalar('train_top5_acc', top5.avg, epoch)
@@ -238,7 +258,7 @@ def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, infoNCE_l
 
             total_caption_length = calculate_caption_lengths(word_dict, cap1)
 
-            c_loss = club_loss(features1, features2, nce_mask)
+            c_loss = club_loss(features1, features2, club_mask)
             infonce_loss = infoNCE_loss(features1, features2, nce_mask)
             ce_loss = cross_entropy_loss(preds1.view(-1, preds1.size(-1)), targets1.view(-1))\
                  + cross_entropy_loss(preds2.view(-1, preds2.size(-1)), targets2.view(-1))
@@ -325,11 +345,11 @@ def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, infoNCE_l
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Show, Attend and Tell')
-    parser.add_argument('--batch-size', type=int, default=16, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=12, metavar='N',
                         help='batch size for training (default: 16)')
     parser.add_argument('--epochs', type=int, default=10, metavar='E',
                         help='number of epochs to train for (default: 10)')
-    parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',
+    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                         help='learning rate of the decoder (default: 1e-4)')
     parser.add_argument('--step-size', type=int, default=5,
                         help='step size for learning rate annealing (default: 5)')
@@ -343,8 +363,14 @@ if __name__ == "__main__":
                         help='Network to use in the encoder (default: vgg19)')
     parser.add_argument('--model', type=str, default='data/pretrained/VGG19_decoder.pth',
                         help='path to model (default: path for vgg19)')
-    parser.add_argument('--tf', action='store_true', default=False,
-                        help='Use teacher forcing when training LSTM (default: False)')
+    parser.add_argument('--tf', action='store_true', default=True,
+                        help='Use teacher forcing when training LSTM (default: True)')
+    parser.add_argument('--use-filter', action='store_true', default=False,
+                        help='Decide using filter or not (default: True)')
+    parser.add_argument('--encoder-training', action='store_true', default=False,
+                        help='Decide training on encoder or not (default: False)')
+    parser.add_argument('--decoder-training', action='store_true', default=False,
+                        help='Decide training on decoder or not (default: False)')
 
     # custom arguments
     parser.add_argument('--estimator-hidden-size', type=int, default=512)
