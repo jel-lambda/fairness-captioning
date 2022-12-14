@@ -51,8 +51,8 @@ def main(args):
     encoder.cuda()
     decoder.cuda()
 
-    train_dataset = ImagePairedCaptionDataset(transform=data_transforms, images_dir='./data/final/', annotations_dir='./data/annotations/', word_dict=word_dict, split_type='train')
-    val_dataset = ImagePairedCaptionDataset(transform=data_transforms, images_dir='./data/final/', annotations_dir='./data/annotations/', word_dict=word_dict, split_type='val')
+    train_dataset = ImagePairedCaptionDataset(transform=data_transforms, images_dir=args.images_dir, annotations_dir=args.annotations_dir, word_dict=word_dict, split_type='train')
+    val_dataset = ImagePairedCaptionDataset(transform=data_transforms, images_dir=args.images_dir,, annotations_dir=args.annotations_dir, word_dict=word_dict, split_type='val')
     if args.use_filter:
         optimizer = optim.Adam(decoder.filter.parameters(), lr=args.lr)
     elif args.encoder_training and args.decoder_training:
@@ -359,6 +359,8 @@ if __name__ == "__main__":
                         help='number of batches to wait before logging training stats (default: 100)')
     parser.add_argument('--data', type=str, default='data/coco',
                         help='path to data images (default: data/coco)')
+    parser.add_argument('--images-dir', type=str, default='data/final/')
+    parser.add_argument('--annotations-dir', type=str, default='data/annotations/')
     parser.add_argument('--network', choices=['vgg19', 'resnet152', 'densenet161'], default='vgg19',
                         help='Network to use in the encoder (default: vgg19)')
     parser.add_argument('--model', type=str, default='data/pretrained/VGG19_decoder.pth',
