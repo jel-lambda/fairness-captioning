@@ -156,13 +156,24 @@ class ImagePairedCaptionDataset(Dataset):
                    torch.LongTensor(target_word_masks), torch.LongTensor(cls_template_masks)
 
         elif self.split_type in ['val', 'test']:
-            all_captions1s = [ [caption + [self.pad_idx] * (max_caption_len - len(caption)) for caption in all_captions1]
-                            for all_captions1 in all_captions1s ]
-            all_captions2s = [ [caption + [self.pad_idx] * (max_caption_len - len(caption)) for caption in all_captions2]
-                            for all_captions2 in all_captions2s ]
+            num_captions = 5
+            padded_all_captions1s, padded_all_captions2s = [], []
+            for all_captions1, all_captions2 in zip(all_captions1s, all_captions2s):
+                padded_all_captions1, padded_all_captions2 = [], []
+                for i in range(num_captions):
+                    if i < len(all_captions1):
+                        padded_all_captions1.append( all_captions1[i] + [self.pad_idx] * (max_caption_len - len(all_captions1[i])) )
+                    else:
+                        padded_all_captions1.append( [self.pad_idx] * (max_caption_len) )
+                    if i < len(all_captions2):
+                        padded_all_captions2.append( all_captions2[i] + [self.pad_idx] * (max_caption_len - len(all_captions2[i])) )
+                    else:
+                        padded_all_captions2.append( [self.pad_idx] * (max_caption_len) )
+                padded_all_captions1s.append( padded_all_captions1 )  
+                padded_all_captions2s.append( padded_all_captions2 )
 
-            return ( torch.stack(img1s), torch.LongTensor(caption1s), torch.LongTensor(all_captions1s) ),\
-                   ( torch.stack(img2s), torch.LongTensor(caption2s), torch.LongTensor(all_captions2s) ),\
+            return ( torch.stack(img1s), torch.LongTensor(caption1s), torch.LongTensor(padded_all_captions1s) ),\
+                   ( torch.stack(img2s), torch.LongTensor(caption2s), torch.LongTensor(padded_all_captions2s) ),\
                    torch.LongTensor(target_word_masks), torch.LongTensor(cls_template_masks)
 
 

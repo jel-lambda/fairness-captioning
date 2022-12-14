@@ -41,19 +41,8 @@ def test(encoder, decoder, data_loader, word_dict, log_interval):
     hypotheses2 = []
 
     with torch.no_grad():
-        last_idx = len(data_loader)
-        data_iterator = iter(data_loader)
-        for batch_idx in range(last_idx):
-            try:
-                pair1, pair2, _, _ = next(data_iterator)
-                img1, cap1, all_cap1 = pair1
-                img2, cap2, all_cap2 = pair2
-            except:
-                print(f"data_loader error at batch {batch_idx}")
-            #for batch_idx, ((img1, cap1, all_cap1), (img2, cap2, all_cap2), _, _) in enumerate(data_loader):
-            #if batch_idx == last_idx-1:
-            #    break
-            print(batch_idx, last_idx)
+        for batch_idx, ((img1, cap1, all_cap1), (img2, cap2, all_cap2), _, _) in enumerate(data_loader):
+
             img1 = Variable(img1.cuda())
             img2 = Variable(img2.cuda())
             cap1 = Variable(cap1.cuda())
@@ -81,8 +70,8 @@ def test(encoder, decoder, data_loader, word_dict, log_interval):
             total_caption_length1 = calculate_caption_lengths(word_dict, cap1)
             total_caption_length2 = calculate_caption_lengths(word_dict, cap2)
 
-            top1.update((acc1_1 + acc2_1)/(2*total_caption_length1), total_caption_length1)
-            top5.update((acc1_5 + acc2_5)/(2*total_caption_length2), total_caption_length2)
+            top1.update((acc1_1 + acc2_1)/2, total_caption_length1)
+            top5.update((acc1_5 + acc2_5)/2, total_caption_length2)
 
             # calculate bleu scores
             for cap_set in all_cap1.tolist():
@@ -165,7 +154,7 @@ def main(args):
     encoder.cuda()
     decoder.cuda()
 
-    test_dataset = ImagePairedCaptionDataset(transform=data_transforms, images_dir='./data/final/', annotations_dir='./data/annotations/', word_dict=word_dict, split_type='test')
+    test_dataset = ImagePairedCaptionDataset(transform=data_transforms, images_dir=args.images_dir, annotations_dir=args.annotations_dir, word_dict=word_dict, split_type='test')
     
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True, collate_fn=test_dataset.collate_fn)
 
@@ -180,6 +169,8 @@ if __name__ == "__main__":
                         help='number of batches to wait before logging training stats (default: 100)')
     parser.add_argument('--data', type=str, default='data/coco',
                         help='path to data images (default: data/coco)')
+    parser.add_argument('--images-dir', type=str, default='./data/final/')
+    parser.add_argument('--annotations-dir', type=str, default='./data/annotations/')
     parser.add_argument('--network', choices=['vgg19', 'resnet152', 'densenet161'], default='vgg19',
                         help='Network to use in the encoder (default: vgg19)')
     parser.add_argument('--model', type=str, default='data/pretrained/VGG19_decoder.pth',
