@@ -196,8 +196,8 @@ def train(epoch, encoder, decoder, optimizer, optimizer_nce, optimizer_club, cro
             infonce_losses.update(infonce_loss.item(), total_caption_length)
             club_losses.update(club_loss.item(), total_caption_length)
         losses.update(loss.item() , total_caption_length)
-        top1.update((acc1_1 + acc2_1)/(2*total_caption_length), total_caption_length)
-        top5.update((acc1_5 + acc2_5)/(2*total_caption_length), total_caption_length)
+        top1.update((acc1_1 + acc2_1)/2, total_caption_length)
+        top5.update((acc1_5 + acc2_5)/2, total_caption_length)
 
         if batch_idx % log_interval == 0:
             print('Train Batch: [{0}/{1}]\t'
@@ -271,8 +271,8 @@ def validate(epoch, encoder, decoder, cross_entropy_loss, data_loader, infoNCE_l
             acc2_5 = accuracy(preds2, targets2, target_lens2, 5)
 
             losses.update(loss.item() , total_caption_length)
-            top1.update((acc1_1 + acc2_1)/(2*total_caption_length), total_caption_length)
-            top5.update((acc1_5 + acc2_5)/(2*total_caption_length), total_caption_length)
+            top1.update((acc1_1 + acc2_1)/2, total_caption_length)
+            top5.update((acc1_5 + acc2_5)/2, total_caption_length)
 
             for cap_set in all_cap1.tolist():
                 caps1 = []
@@ -349,7 +349,7 @@ if __name__ == "__main__":
                         help='batch size for training (default: 16)')
     parser.add_argument('--epochs', type=int, default=10, metavar='E',
                         help='number of epochs to train for (default: 10)')
-    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
+    parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
                         help='learning rate of the decoder (default: 1e-4)')
     parser.add_argument('--step-size', type=int, default=5,
                         help='step size for learning rate annealing (default: 5)')
