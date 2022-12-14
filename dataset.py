@@ -6,12 +6,19 @@ from torch.utils.data import Dataset
 
 from PIL import Image
 
+import string
+
 
 
 def pil_loader(path):
     with open(path, 'rb') as f:
         img = Image.open(f)
         return img.convert('RGB')
+
+def preprocess_caption(caption):
+    caption = caption.lower()
+    caption = ''.join( [c for c in caption if c not in string.punctuation] )
+    return caption
 
 
 class ImagePairedCaptionDataset(Dataset):
@@ -117,9 +124,9 @@ class ImagePairedCaptionDataset(Dataset):
                    CLUB_mask.long().tolist(), InfoNCE_mask.long().tolist()
 
         elif self.split_type in ['val', 'test']:
-            all_captions1 = [ [self.word2idx['<sos>']] + [self.word2idx[word] for word in caption.split(' ')] + [self.word2idx['<eos>']]
+            all_captions1 = [ [self.word2idx['<start>']] + [self.word2idx[word] for word in caption.split(' ')] + [self.word2idx['<eos>']]
                             for caption in self.image2captions[img_path1]]
-            all_captions2 = [ [self.word2idx['<sos>']] + [self.word2idx[word] for word in caption.split(' ')] + [self.word2idx['<eos>']]
+            all_captions2 = [ [self.word2idx['<start>']] + [self.word2idx[word] for word in caption.split(' ')] + [self.word2idx['<eos>']]
                             for caption in self.image2captions[img_path2]]
             return (torch.FloatTensor(img1), caption1, all_captions1),\
                    (torch.FloatTensor(img2), caption2, all_captions2),\
@@ -178,5 +185,52 @@ class ImagePairedCaptionDataset(Dataset):
 
 
 
-class ImageCaptionDataset(Dataset):
-    pass
+class ImageCaptionTestDataset(Dataset):
+    def __init__(self, transform, coco_data_path, word_dict, split_type='test'):
+        super(ImageCaptionTestDataset, self).__init__()
+
+        assert split_type == 'test', "This dataset if only for testing."
+
+        self.split_type = split_type
+        self.transform = transform
+        self.word2idx = defaultdict(lambda: word_dict['<unk>'])
+        self.word2idx.update(word_dict)
+        self.pad_idx = self.word2idx['<pad>']
+
+        self.images_dir = os.path.join(coco_data_path, 'images/')
+
+        self.caption_img_idx = {}
+        self.img_paths = json.load(open(coco_data_path + '/{}_img_paths.json'.format(split_type), 'r'))
+        
+        captions = json.load(open(coco_data_path + '/{}_captions.json'.format(split_type), 'r'))
+        captions = [ preprocess_caption(caption) for caption in captions]
+
+        self.captions = []
+        for caption in captions:
+            self.captions.append( [self.word2idx['<start>']] + [ self.word2idx[c] for c in caption.split(' ') ] + [self.word2idx['<eos>']] )
+
+    def __getitem__(self, index):
+        img_path = self.img_paths[index]
+        img = pil_loader(os.path.join(self.images_dir, img_path))
+        if self.transform is not None:
+            img = self.transform(img)
+
+        matching_idxs = [idx for idx, path in enumerate(self.img_paths) if path == img_path]
+        all_captions = [self.captions[idx] for idx in matching_idxs]
+
+        return torch.FloatTensor(img), self.captions[index], all_captions
+
+    def __len__(self):
+        return len(self.captions)
+
+    def collate_fn(self, data):
+
+        imgs, captions, all_captionss = zip(*data)
+        max_caption_len = max([ max([len(caption) for caption in all_captions]) for all_captions in all_captionss ])
+        
+        padded_captions = [ caption + [self.pad_idx]*(max_caption_len - len(caption)) for caption in captions ]
+        padded_all_captionss = []
+        for all_captions in all_captionss:
+            padded_all_captionss.append( [ caption + [self.pad_idx]*(max_caption_len - len(caption)) for caption in all_captions ] )
+
+        return ( torch.stack(imgs), torch.LongTensor(padded_captions), torch.LongTensor(padded_all_captionss) )
