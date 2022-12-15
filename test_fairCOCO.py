@@ -95,19 +95,23 @@ def test(encoder, decoder, data_loader, word_dict, log_interval):
                     cap = [word_idx for word_idx in caption
                                     if word_idx != word_dict['<start>'] and word_idx != word_dict['<pad>']]
                     caps1.append(cap)
-                    cap_female.append([idx for idx in caption\
-                                        if idx == word_dict['woman']])
-                    cap_male.append([idx for idx in caption\
-                                        if idx == word_dict['man']])
-                    cap_girl.append([idx for idx in caption\
-                                        if idx == word_dict['girl']])
-                    cap_boy.append([idx for idx in caption\
-                                        if idx == word_dict['boy']])
+                    if word_dict['woman'] in caption:
+                        cap_female.append(cap)
+                    if word_dict['man'] in caption:
+                        cap_male.append(cap)
+                    if word_dict['girl'] in caption:
+                        cap_girl.append(cap)
+                    if word_dict['boy'] in caption:
+                        cap_boy.append(cap)
                 references1.append(caps1)
-                references_female.append(cap_female)
-                references_male.append(cap_male)
-                references_girl.append(cap_girl)
-                references_boy.append(cap_boy)
+                if cap_female:
+                    references_female.append(cap_female)
+                if cap_male:
+                    references_male.append(cap_male)
+                if cap_girl:
+                    references_girl.append(cap_girl)
+                if cap_boy:
+                    references_boy.append(cap_boy)
 
             for cap_set in all_cap2.tolist():
                 caps2 = []
@@ -119,46 +123,55 @@ def test(encoder, decoder, data_loader, word_dict, log_interval):
                     cap = [word_idx for word_idx in caption
                                     if word_idx != word_dict['<start>'] and word_idx != word_dict['<pad>']]
                     caps2.append(cap)
-                    cap_female.append([idx for idx in caption
-                                        if idx == word_dict['woman']])
-                    cap_male.append([idx for idx in caption
-                                        if idx == word_dict['man']])
-                    cap_girl.append([idx for idx in caption
-                                        if idx == word_dict['girl']])
-                    cap_boy.append([idx for idx in caption
-                                        if idx == word_dict['boy']])
+                    if word_dict['woman'] in caption:
+                        cap_female.append(cap)
+                    if word_dict['man'] in caption:
+                        cap_male.append(cap)
+                    if word_dict['girl'] in caption:
+                        cap_girl.append(cap)
+                    if word_dict['boy'] in caption:
+                        cap_boy.append(cap)
                 references2.append(caps2)
-                references_female.append(cap_female)
-                references_male.append(cap_male)
-                references_girl.append(cap_girl)
-                references_boy.append(cap_boy)
+                if cap_female:
+                    references_female.append(cap_female)
+                if cap_male:
+                    references_male.append(cap_male)
+                if cap_girl:
+                    references_girl.append(cap_girl)
+                if cap_boy:
+                    references_boy.append(cap_boy)
 
 
             word_idxs1 = torch.max(preds1, dim=2)[1]
             for idxs in word_idxs1.tolist():
                 hypotheses1.append([idx for idx in idxs
                                        if idx != word_dict['<start>'] and idx != word_dict['<pad>']])
-                hypotheses_male.append([idx for idx in idxs
-                                        if idx == word_dict['man']])
-                hypotheses_female.append([idx for idx in idxs
-                                        if idx == word_dict['woman']])
-                hypotheses_girl.append([idx for idx in idxs
-                                        if idx == word_dict['girl']])
-                hypotheses_boy.append([idx for idx in idxs
-                                        if idx == word_dict['boy']])
+                cap = [idx for idx in idxs
+                                       if idx != word_dict['<start>'] and idx != word_dict['<pad>']]
+                if word_dict['woman'] in idxs:
+                    hypotheses_female.append(cap)
+                if word_dict['man'] in idxs:
+                    hypotheses_male.append(cap)
+                if word_dict['girl'] in idxs:
+                    hypotheses_girl.append(cap)
+                if word_dict['boy'] in idxs:
+                    hypotheses_boy.append(cap)
+                
 
             word_idxs2 = torch.max(preds2, dim=2)[1]
             for idxs in word_idxs2.tolist():
                 hypotheses2.append([idx for idx in idxs
                                        if idx != word_dict['<start>'] and idx != word_dict['<pad>']])
-                hypotheses_male.append([idx for idx in idxs
-                                        if idx == word_dict['man']])
-                hypotheses_female.append([idx for idx in idxs
-                                        if idx == word_dict['woman']])
-                hypotheses_girl.append([idx for idx in idxs
-                                        if idx == word_dict['girl']])
-                hypotheses_boy.append([idx for idx in idxs
-                                        if idx == word_dict['boy']])
+                cap = [idx for idx in idxs
+                                       if idx != word_dict['<start>'] and idx != word_dict['<pad>']]
+                if word_dict['woman'] in idxs:
+                    hypotheses_female.append(cap)
+                if word_dict['man'] in idxs:
+                    hypotheses_male.append(cap)
+                if word_dict['girl'] in idxs:
+                    hypotheses_girl.append(cap)
+                if word_dict['boy'] in idxs:
+                    hypotheses_boy.append(cap)
                 
             if batch_idx % log_interval == 0:     
                 print('Test Batch: [{0}/{1}]\t'
