@@ -39,6 +39,14 @@ def test(encoder, decoder, data_loader, word_dict, log_interval):
     hypotheses1 = []
     references2 = []
     hypotheses2 = []
+    references_male = []
+    hypotheses_male = []
+    references_female = []
+    hypotheses_female = []
+    references_girl = []
+    hypotheses_girl = []
+    references_boy = []
+    hypotheses_boy = []
 
     with torch.no_grad():
         for batch_idx, ((img1, cap1, all_cap1), (img2, cap2, all_cap2), _, _) in enumerate(data_loader):
@@ -78,34 +86,86 @@ def test(encoder, decoder, data_loader, word_dict, log_interval):
             # calculate bleu scores
             for cap_set in all_cap1.tolist():
                 caps1 = []
+                cap_boy = []
+                cap_girl = []
+                cap_male = []
+                cap_female = []
+
                 for caption in cap_set:
                     cap = [word_idx for word_idx in caption
                                     if word_idx != word_dict['<start>'] and word_idx != word_dict['<pad>']]
                     caps1.append(cap)
+                    cap_female.append([idx for idx in caption\
+                                        if idx == word_dict['woman']])
+                    cap_male.append([idx for idx in caption\
+                                        if idx == word_dict['man']])
+                    cap_girl.append([idx for idx in caption\
+                                        if idx == word_dict['girl']])
+                    cap_boy.append([idx for idx in caption\
+                                        if idx == word_dict['boy']])
                 references1.append(caps1)
+                references_female.append(cap_female)
+                references_male.append(cap_male)
+                references_girl.append(cap_girl)
+                references_boy.append(cap_boy)
 
             for cap_set in all_cap2.tolist():
                 caps2 = []
+                cap_boy = []
+                cap_girl = []
+                cap_male = []
+                cap_female = []
                 for caption in cap_set:
                     cap = [word_idx for word_idx in caption
                                     if word_idx != word_dict['<start>'] and word_idx != word_dict['<pad>']]
                     caps2.append(cap)
+                    cap_female.append([idx for idx in caption
+                                        if idx == word_dict['woman']])
+                    cap_male.append([idx for idx in caption
+                                        if idx == word_dict['man']])
+                    cap_girl.append([idx for idx in caption
+                                        if idx == word_dict['girl']])
+                    cap_boy.append([idx for idx in caption
+                                        if idx == word_dict['boy']])
                 references2.append(caps2)
+                references_female.append(cap_female)
+                references_male.append(cap_male)
+                references_girl.append(cap_girl)
+                references_boy.append(cap_boy)
+
 
             word_idxs1 = torch.max(preds1, dim=2)[1]
             for idxs in word_idxs1.tolist():
                 hypotheses1.append([idx for idx in idxs
                                        if idx != word_dict['<start>'] and idx != word_dict['<pad>']])
+                hypotheses_male.append([idx for idx in idxs
+                                        if idx == word_dict['man']])
+                hypotheses_female.append([idx for idx in idxs
+                                        if idx == word_dict['woman']])
+                hypotheses_girl.append([idx for idx in idxs
+                                        if idx == word_dict['girl']])
+                hypotheses_boy.append([idx for idx in idxs
+                                        if idx == word_dict['boy']])
 
             word_idxs2 = torch.max(preds2, dim=2)[1]
             for idxs in word_idxs2.tolist():
                 hypotheses2.append([idx for idx in idxs
                                        if idx != word_dict['<start>'] and idx != word_dict['<pad>']])
+                hypotheses_male.append([idx for idx in idxs
+                                        if idx == word_dict['man']])
+                hypotheses_female.append([idx for idx in idxs
+                                        if idx == word_dict['woman']])
+                hypotheses_girl.append([idx for idx in idxs
+                                        if idx == word_dict['girl']])
+                hypotheses_boy.append([idx for idx in idxs
+                                        if idx == word_dict['boy']])
+                
             if batch_idx % log_interval == 0:     
                 print('Test Batch: [{0}/{1}]\t'
                       'Top 1 Accuracy {top1.val:.3f} ({top1.avg:.3f})\t'
                       'Top 5 Accuracy {top5.val:.3f} ({top5.avg:.3f})'.format(
                           batch_idx, len(data_loader), top1=top1, top5=top5))
+            
 
         bleu_1_1 = corpus_bleu(references1, hypotheses1, weights=(1, 0, 0, 0))
         bleu_1_2 = corpus_bleu(references1, hypotheses1, weights=(0.5, 0.5, 0, 0))
@@ -116,6 +176,11 @@ def test(encoder, decoder, data_loader, word_dict, log_interval):
         bleu_2_2 = corpus_bleu(references2, hypotheses2, weights=(0.5, 0.5, 0, 0))
         bleu_2_3 = corpus_bleu(references2, hypotheses2, weights=(0.33, 0.33, 0.33, 0))
         bleu_2_4 = corpus_bleu(references2, hypotheses2)
+
+        bleu_female = corpus_bleu(references_female, hypotheses_female, weights=(1, 0, 0, 0))
+        bleu_male = corpus_bleu(references_male, hypotheses_male, weights=(1, 0, 0, 0))
+        bleu_boy = corpus_bleu(references_boy, hypotheses_boy, weights=(1, 0, 0, 0))
+        bleu_girl = corpus_bleu(references_girl, hypotheses_girl, weights=(1, 0, 0, 0))
 
         print('Testing :\t'
                 'BLEU-1 ({})\t'
@@ -129,7 +194,11 @@ def test(encoder, decoder, data_loader, word_dict, log_interval):
                 'BLEU-3 ({})\t'
                 'BLEU-4 ({})\t'.format(bleu_2_1, bleu_2_2, bleu_2_3, bleu_2_4))
 
-
+        print('Testing :\t'  
+                'BLEU-male ({})\t'
+                'BLEU-female ({})\t'
+                'BLEU-boy ({})\t'
+                'BLEU-girl ({})\t'.format(bleu_male, bleu_female, bleu_boy, bleu_girl))
 
 
 def main(args):
